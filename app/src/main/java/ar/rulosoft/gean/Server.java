@@ -121,6 +121,9 @@ public class Server implements HttpHandler {
         OutputStream os = he.getResponseBody();
         os.write(response.getBytes(),0, response.length());
         os.close();
+        if("shutdown".equals(fpath[1])){
+            server.stop(0);
+        }
     }
     public void start(String localIP) throws IOException {
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 8080),0);
