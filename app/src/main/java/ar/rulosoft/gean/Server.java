@@ -21,6 +21,7 @@ import java.util.HashMap;
 
 public class Server implements HttpHandler {
     private HttpServer server;
+    private String wpath = "./www";
     private boolean running;
     long totalSise, actualServed;
     static Server instance = null;
@@ -84,7 +85,7 @@ public class Server implements HttpHandler {
                 response = InetTools.rget(InetTools.dec(fpath[2]), headers);
             }
         }
-        File rfile = new File(Updates.path, path);
+        File rfile = new File(Updates.path, wpath + path);
         if(response == "") {
             if (!rfile.exists()) {
                 response = "404 (Not Found)\n";
