@@ -13,15 +13,17 @@ import java.util.zip.ZipInputStream;
 
 public class Updates {
     static File path;
+    static String version;
 
-    public static boolean checkUpdates() throws IOException {
+    public static void checkUpdates() throws IOException {
         if (new File(path, "version").exists()) {
-            String[] r_version = InetTools.get("https://raw.githubusercontent.com/raulhaag/gean/master/version", new HashMap<>()).split("\\.");
+            version = InetTools.get("https://raw.githubusercontent.com/raulhaag/gean/master/version", new HashMap<>());
+            String[] r_version = version.split("\\.");
             String[] l_version = new BufferedReader(new FileReader(new File(path, "version"))).readLine().split("\\.");
             int ri_version = Integer.parseInt(r_version[0]) * 100000000 + Integer.parseInt(r_version[1]) * 100000 + Integer.parseInt(r_version[2]);
             int li_version = Integer.parseInt(l_version[0]) * 100000000 + Integer.parseInt(l_version[1]) * 100000 + Integer.parseInt(l_version[2]);
             if(ri_version <= li_version){
-                return false;
+                return;
             }
         }
         File up = new File(path, "update.zip");
@@ -30,7 +32,6 @@ public class Updates {
         }
         InetTools.download("https://github.com/raulhaag/gean/archive/refs/heads/master.zip", up);
         unzipUpdate(up.getAbsolutePath(), path.getAbsolutePath());
-        return true;
     }
 
     public static void unzipUpdate(String zipFilePath, String destDirectory) throws IOException {

@@ -1,5 +1,9 @@
 package ar.rulosoft.gean;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
+
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -21,6 +25,7 @@ import java.util.HashMap;
 
 public class Server implements HttpHandler {
     private HttpServer server;
+    private Activity parent;
     private String wpath = "./www";
     private boolean running;
     long totalSise, actualServed;
@@ -85,6 +90,18 @@ public class Server implements HttpHandler {
                 response = InetTools.rget(InetTools.dec(fpath[2]), headers);
             }
         }
+        if("info".equals(fpath[1])) {
+            response = "{\"host\":\"android\", \"version\":\""+ Updates.version + "\"}";
+        }else if("view".equals(fpath[1])){
+            if(parent != null) {
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setDataAndType(Uri.parse(InetTools.dec(fpath[2])), "video/*");
+                parent.startActivity(intent);
+                response = "ok";
+            }else{
+                response = "error";
+            }
+        }
         File rfile = new File(Updates.path, wpath + path);
         if(response == "") {
             if (!rfile.exists()) {
@@ -126,7 +143,8 @@ public class Server implements HttpHandler {
             server.stop(0);
         }
     }
-    public void start(String localIP) throws IOException {
+    public void start(Activity parent) throws IOException {
+        this.parent = parent;
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 8080),0);
         server.createContext("/", this);
         server.start();

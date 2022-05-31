@@ -57,7 +57,7 @@ public class FirstFragment extends Fragment {
     public void start() {
         try {
             Server server = Server.getInstance();
-            server.start(lip);
+            server.start(getActivity());
             getActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             webView.loadUrl("http://127.0.0.1:8080/main.html");
         } catch (IOException e) {
