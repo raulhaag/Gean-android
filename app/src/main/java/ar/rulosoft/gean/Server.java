@@ -102,6 +102,7 @@ public class Server implements HttpHandler {
                 response = "error";
             }
         }
+
         File rfile = new File(Updates.path, wpath + path);
         if(response == "") {
             if (!rfile.exists()) {
