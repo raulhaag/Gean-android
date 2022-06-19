@@ -71,7 +71,7 @@ public class Server implements HttpHandler {
         String path = uri.toString();
         String[] fpath = uri.toString().split("/");
         String response = "";
-        if("get".equals(fpath[1]) || "rget".equals(fpath[1]) || "post".equals(fpath[1]) || "rpost".equals(fpath[1])){
+        if("get".equals(fpath[1]) || "rget".equals(fpath[1]) || "post".equals(fpath[1]) || "rpost".equals(fpath[1])|| "file".equals(fpath[1])){
             HashMap<String,String> headers = new HashMap<>();
             if(fpath.length > 3){
                 headers = InetTools.jsonToHM(InetTools.dec(fpath[3]));
@@ -88,6 +88,9 @@ public class Server implements HttpHandler {
                 response = InetTools.rpost(InetTools.dec(fpath[2]), headers, data);
             }else if("rget".equals(fpath[1])){
                 response = InetTools.rget(InetTools.dec(fpath[2]), headers);
+            }else if("file".equals(fpath[1])){
+                InetTools.get(InetTools.dec(fpath[2]), headers, he);
+                return;
             }
         }
         if("info".equals(fpath[1])) {
@@ -102,6 +105,7 @@ public class Server implements HttpHandler {
                 response = "error";
             }
         }
+
 
         File rfile = new File(Updates.path, wpath + path);
         if(response == "") {

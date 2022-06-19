@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import android.util.Log;
 
 public class Updates {
     static File path;
@@ -23,8 +24,10 @@ public class Updates {
             int ri_version = Integer.parseInt(r_version[0]) * 100000000 + Integer.parseInt(r_version[1]) * 100000 + Integer.parseInt(r_version[2]);
             int li_version = Integer.parseInt(l_version[0]) * 100000000 + Integer.parseInt(l_version[1]) * 100000 + Integer.parseInt(l_version[2]);
             if(ri_version <= li_version){
+                Log.i("Version gean", version);
                 return;
             }
+            Log.i("Update gean", version);
         }
         File up = new File(path, "update.zip");
         if (up.exists()) {

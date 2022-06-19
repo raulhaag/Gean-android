@@ -1,23 +1,28 @@
 package ar.rulosoft.gean;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.FrameLayout;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -33,6 +38,30 @@ public class FirstFragment extends Fragment {
     private FragmentFirstBinding binding;
     String ipaddres = "", lip;
     WebView webView;
+
+    @JavascriptInterface
+    public void onData(String value) {
+        Log.i("onData", value);
+        if (!"0".equals(value)) {
+            new Handler(Looper.getMainLooper()).post(() -> webView.loadUrl("javascript:backClick()"));
+        } else getActivity().finish();
+    }
+
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        OnBackPressedCallback callback = new OnBackPressedCallback(
+                true // default to enabled
+        ) {
+            @Override
+            public void handleOnBackPressed() {
+                webView.loadUrl("javascript:android.onData(window.backStack.length)");
+            }
+        };
+        requireActivity().getOnBackPressedDispatcher().addCallback(
+                this, // LifecycleOwner
+                callback);
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -50,6 +79,7 @@ public class FirstFragment extends Fragment {
         webView.getSettings().setDomStorageEnabled(true);
         webView.getSettings().setAppCacheEnabled(true);
         webView.getSettings().setSaveFormData(true);
+        webView.addJavascriptInterface(this, "android");
         new AsyncStart().execute();
         return binding.getRoot();
     }
