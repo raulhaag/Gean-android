@@ -21,6 +21,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.TextView;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultCallback;
@@ -38,6 +39,7 @@ public class FirstFragment extends Fragment {
     private FragmentFirstBinding binding;
     String ipaddres = "", lip;
     WebView webView;
+    TextView loadScreen;
 
     @JavascriptInterface
     public void onData(String value) {
@@ -55,6 +57,7 @@ public class FirstFragment extends Fragment {
         ) {
             @Override
             public void handleOnBackPressed() {
+//              webView.loadUrl("javascript:openPlayer({'video':'http://127.0.0.1:8080/file/'})");
                 webView.loadUrl("javascript:android.onData(window.backStack.length)");
             }
         };
@@ -72,7 +75,12 @@ public class FirstFragment extends Fragment {
 
         binding = FragmentFirstBinding.inflate(inflater, container, false);
         webView = binding.webview;
-        webView.setWebViewClient(new WebViewClient());
+        loadScreen = binding.loadScreen;
+        webView.setWebViewClient(new WebViewClient(){
+            public void onPageFinished(WebView view, String url) {
+                loadScreen.setVisibility(View.GONE);
+            }
+        });
         webView.setWebChromeClient(new MyChrome());
         webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
         webView.getSettings().setJavaScriptEnabled(true);
