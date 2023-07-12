@@ -21,6 +21,7 @@ public class Updates {
             version = InetTools.get("https://raw.githubusercontent.com/raulhaag/gean/master/version", new HashMap<>());
             String[] r_version = version.split("\\.");
             String[] l_version = new BufferedReader(new FileReader(new File(path, "version"))).readLine().split("\\.");
+
             int ri_version = Integer.parseInt(r_version[0]) * 100000000 + Integer.parseInt(r_version[1]) * 100000 + Integer.parseInt(r_version[2]);
             int li_version = Integer.parseInt(l_version[0]) * 100000000 + Integer.parseInt(l_version[1]) * 100000 + Integer.parseInt(l_version[2]);
             if(ri_version <= li_version){
