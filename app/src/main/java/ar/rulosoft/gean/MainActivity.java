@@ -153,7 +153,8 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
                     }
 
             }
-            webView.loadUrl("javascript:document.onkeydown({keyCode: "+nkey+", key:'"+ key +"'})");
+           // webView.loadUrl("javascript:document.onkeydown({keyCode: "+nkey+", key:'"+ key +", preventDefault:pd'})");
+           webView.loadUrl("javascript:document.onkeydown(new KeyboardEvent('keydown', { key:'"+ key + "', keyCode: " + nkey + " }))");
         }
         return true;//capture
     }
@@ -169,6 +170,12 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
     public void onRestoreInstanceState(@Nullable Bundle savedInstanceState, @Nullable PersistableBundle persistentState) {
         super.onRestoreInstanceState(savedInstanceState, persistentState);
         webView.restoreState(savedInstanceState);
+    }
+
+    @Override
+    public void finish() {
+        Server.getInstance().stop();
+        super.finish();
     }
 
     @Override

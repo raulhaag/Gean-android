@@ -150,7 +150,20 @@ public class Server implements HttpHandler {
     }
     public void start(Activity parent) throws IOException {
         this.parent = parent;
-        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 8080),0);
+        int error;
+        do {
+            error = 0;
+            try {
+                server = HttpServer.create(new InetSocketAddress("127.0.0.1", 8080), 0);
+            }catch (Exception e){
+                error = 1;
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        }while(error != 0);
         server.createContext("/", this);
         server.start();
     }
