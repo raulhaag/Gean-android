@@ -4,11 +4,13 @@ import static android.view.KeyEvent.KEYCODE_BACK;
 
 import android.app.UiModeManager;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 
 import androidx.activity.OnBackPressedCallback;
@@ -119,10 +121,12 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
                 webView.loadUrl("javascript:android.onData(window.backStack.length)");
                 return true;
             }
+            Log.e("mmu", " "+keyCode);
             int nkey = keyCode;
             char key = ' ';
             switch (nkey){
                 case 66:
+                case 23:
                     nkey = 13;//enter
                     break;
                 case 19:
@@ -208,17 +212,28 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
         return false;
     }
 
+
     public void start() {
         try {
             Server server = Server.getInstance();
-            server.start(this);
+            server.start(MainActivity.this);
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-            webView.loadUrl("http://127.0.0.1:8080/main.html");
+            String page = "";
+            if(isAndroidTv()){
+                page = "_2";
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                if (0 != (getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE))
+                { WebView.setWebContentsDebuggingEnabled(true); }
+                page = "_2";
+            }
+            webView.loadUrl("http://127.0.0.1:8080/main" + page + ".html");
         } catch (IOException e) {
             e.printStackTrace();
             Server.getInstance().stop();
         }
     }
+
 
     public class AsyncStart extends AsyncTask<Void, Void, Void> {
         @Override
