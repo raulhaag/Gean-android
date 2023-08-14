@@ -22,6 +22,7 @@ import java.net.SocketException;
 import java.net.URI;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.concurrent.Executors;
 
 public class Server implements HttpHandler {
     private HttpServer server;
@@ -71,7 +72,7 @@ public class Server implements HttpHandler {
         String path = uri.toString();
         String[] fpath = uri.toString().split("/");
         String response = "";
-        if("get".equals(fpath[1]) || "rget".equals(fpath[1]) || "post".equals(fpath[1]) || "rpost".equals(fpath[1])|| "file".equals(fpath[1])){
+        if("get".equals(fpath[1]) || "rget".equals(fpath[1]) || "post".equals(fpath[1]) || "rpost".equals(fpath[1])|| "file".equals(fpath[1]) || "cache".equals(fpath[1])){
             HashMap<String,String> headers = new HashMap<>();
             if(fpath.length > 3){
                 headers = InetTools.jsonToHM(InetTools.dec(fpath[3]));
@@ -91,6 +92,9 @@ public class Server implements HttpHandler {
             }else if("file".equals(fpath[1])){
                 InetTools.get(InetTools.dec(fpath[2]), headers, he);
                 return;
+            }else if("cache".equals(fpath[1])){
+                InetTools.cache(fpath[2], headers, he);
+                return;
             }
         }
         if("info".equals(fpath[1])) {
@@ -105,10 +109,8 @@ public class Server implements HttpHandler {
                 response = "error";
             }
         }
-
-
         File rfile = new File(Updates.path, wpath + path);
-        if(response == "") {
+        if(response.equals("")) {
             if (!rfile.exists()) {
                 response = "404 (Not Found)\n";
             } else {
@@ -137,6 +139,7 @@ public class Server implements HttpHandler {
                 }
                 fs.close();
                 os.close();
+                he.close();
                 return;
             }
         }
@@ -144,6 +147,7 @@ public class Server implements HttpHandler {
         OutputStream os = he.getResponseBody();
         os.write(response.getBytes(),0, response.length());
         os.close();
+        he.close();
         if("shutdown".equals(fpath[1])){
             server.stop(0);
         }
@@ -154,7 +158,9 @@ public class Server implements HttpHandler {
         do {
             error = 0;
             try {
-                server = HttpServer.create(new InetSocketAddress("127.0.0.1", 8080), 0);
+                server = HttpServer.create(new InetSocketAddress( 8080), 0); //"127.0.0.1",
+
+                server.setExecutor(Executors.newFixedThreadPool(4));
             }catch (Exception e){
                 error = 1;
                 try {

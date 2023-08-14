@@ -3,6 +3,7 @@ package ar.rulosoft.gean;
 import static android.view.KeyEvent.KEYCODE_BACK;
 
 import android.app.UiModeManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.res.Configuration;
@@ -21,6 +22,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.PersistableBundle;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -35,6 +37,9 @@ import ar.rulosoft.gean.databinding.ActivityMainBinding;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.WindowManager;
+import android.view.inputmethod.BaseInputConnection;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputConnection;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -51,7 +56,7 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
     String ipaddres = "", lip;
-    WebView webView;
+    WebViewExtended webView;
     FrameLayout loadScreen;
 
     @JavascriptInterface
@@ -110,9 +115,10 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
                 callback);
     }
 
-    @Override
+   /* @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         // Captura y procesa las pulsaciones de teclas aquí
+        //webView.onKeyDown(event.getKeyCode(),event);
         int action = event.getAction();
         int keyCode = event.getKeyCode();
 
@@ -121,25 +127,29 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
                 webView.loadUrl("javascript:android.onData(window.backStack.length)");
                 return true;
             }
-            Log.e("mmu", " "+keyCode);
+            //Log.e("mmu", " "+keyCode);
             int nkey = keyCode;
-            char key = ' ';
+            String key = " ";
             switch (nkey){
                 case 66:
                 case 23:
                     nkey = 13;//enter
+                    key = "Enter";
                     break;
-                case 19:
-                    nkey = 38;
+                case KeyEvent.KEYCODE_DPAD_RIGHT:
+                    key = "ArrowRight";
                     break;
-                case 20:
-                    nkey = 40;
+                case KeyEvent.KEYCODE_DPAD_LEFT:
+                    key = "ArrowLeft";
+
                     break;
-                case 22:
-                    nkey = 39;
+                case KeyEvent.KEYCODE_DPAD_UP:
+                    key = "ArrowUp";
+
                     break;
-                case 21:
+                case KeyEvent.KEYCODE_DPAD_DOWN:
                     nkey = 37;
+                    key = "ArrowDown";
                     break;
                 case 62:
                     nkey = 32;
@@ -150,18 +160,17 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
                 default:
                     if(keyCode <=16 && keyCode >=7){
                         nkey = keyCode + 89;
-                        key = (char) nkey;
+                        key = (char) nkey + "";
                     }else if(keyCode <=54 && keyCode >=29){
                         nkey = keyCode + 36;
-                        key = (char) nkey;
+                        key = (char) nkey + "";
                     }
-
             }
            // webView.loadUrl("javascript:document.onkeydown({keyCode: "+nkey+", key:'"+ key +", preventDefault:pd'})");
            webView.loadUrl("javascript:document.onkeydown(new KeyboardEvent('keydown', { key:'"+ key + "', keyCode: " + nkey + " }))");
         }
-        return true;//capture
-    }
+        return false;//capture
+    }*/
 
 
     @Override
@@ -225,7 +234,7 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 if (0 != (getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE))
                 { WebView.setWebContentsDebuggingEnabled(true); }
-                page = "_2";
+                page = "";
             }
             webView.loadUrl("http://127.0.0.1:8080/main" + page + ".html");
         } catch (IOException e) {
@@ -293,4 +302,5 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
             getWindow().getDecorView().setSystemUiVisibility(3846 | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         }
     }
+
 }
