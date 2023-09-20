@@ -1,6 +1,9 @@
 package ar.rulosoft.gean;
 
+import static fi.iki.elonen.NanoHTTPD.newFixedLengthResponse;
+
 import android.util.Base64;
+import android.util.Log;
 
 import com.grack.nanojson.JsonObject;
 import com.grack.nanojson.JsonParser;
@@ -13,13 +16,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.file.Files;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import fi.iki.elonen.NanoHTTPD;
 import okhttp3.FormBody;
+import okhttp3.Headers;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okio.Buffer;
@@ -28,13 +37,27 @@ import okio.BufferedSource;
 import okio.Okio;
 
 public class InetTools {
-    static OkHttpClient client = new OkHttpClient();
+
+    public static CacheInfo cacheInfo = new CacheInfo();
+    static OkHttpClient mClient = null;
+
+    public static OkHttpClient client(){
+        if(mClient == null){
+            OkHttpClient.Builder builder = new OkHttpClient.Builder();
+            builder.connectTimeout(30, TimeUnit.SECONDS);
+            builder.readTimeout(30, TimeUnit.SECONDS);
+            builder.writeTimeout(30, TimeUnit.SECONDS);
+            builder.retryOnConnectionFailure(true);
+            mClient = builder.build();
+        }
+        return mClient;
+    }
     public static String get(String url, HashMap<String, String> headers) {
         Request.Builder request = new Request.Builder().url(url);
         for (String k : headers.keySet()) {
             request.addHeader(k, headers.get(k));
         }
-        try (Response response = client.newCall(request.build()).execute()) {
+        try (Response response = client().newCall(request.build()).execute()) {
             return response.body().string();
         } catch (IOException e) {
             e.printStackTrace();
@@ -47,7 +70,7 @@ public class InetTools {
         for (String k : headers.keySet()) {
             request.addHeader(k, headers.get(k));
         }
-        try (Response response = client.newCall(request.build()).execute()) {
+        try (Response response = client().newCall(request.build()).execute()) {
             double length = Double.parseDouble(Objects.requireNonNull(response.header("Content-Length", "1")));
             he.sendResponseHeaders(200, (long) length);
             OutputStream os = he.getResponseBody();
@@ -57,6 +80,7 @@ public class InetTools {
             int count = 0;
             while ((count = input.read(data)) != -1) {
                 os.write(data, 0, count);
+                os.flush();
             }
             os.flush();
             os.close();
@@ -72,7 +96,7 @@ public class InetTools {
         for (String k : headers.keySet()) {
             request.addHeader(k, headers.get(k));
         }
-        try (Response response = client.newCall(request.build()).execute()) {
+        try (Response response = client().newCall(request.build()).execute()) {
             return response.request().url().toString();
         } catch (IOException e) {
             e.printStackTrace();
@@ -89,7 +113,7 @@ public class InetTools {
         for (String k : headers.keySet()) {
             request.addHeader(k, headers.get(k));
         }
-        try (Response response = client.newCall(request.post(formBody.build()).build()).execute()) {
+        try (Response response = client().newCall(request.post(formBody.build()).build()).execute()) {
             return response.body().string();
         } catch (IOException e) {
             e.printStackTrace();
@@ -106,7 +130,7 @@ public class InetTools {
         for (String k : headers.keySet()) {
             request.addHeader(k, headers.get(k));
         }
-        try (Response response = client.newCall(request.post(formBody.build()).build()).execute()) {
+        try (Response response = client().newCall(request.post(formBody.build()).build()).execute()) {
             return response.request().url().toString();
         } catch (IOException e) {
             e.printStackTrace();
@@ -127,6 +151,180 @@ public class InetTools {
         return response;
     }
 
+    public static NanoHTTPD.Response file(String url, HashMap<String, String> headers) throws IOException {
+        PrFileInputStream inputStream = new PrFileInputStream(url, headers);
+
+        if(inputStream.rcode() == 200 || inputStream.rcode() == 206){
+            long tlength = Long.parseLong(Objects.requireNonNull(inputStream.getResponseHeaders().get("Content-length")));
+            NanoHTTPD.Response response;
+            NanoHTTPD.Response.Status status = (inputStream.rcode() == 200) ?NanoHTTPD.Response.Status.OK: NanoHTTPD.Response.Status.PARTIAL_CONTENT;
+            String cType = inputStream.getContentType();
+            if (cType != null && cType.length() > 2) {
+                response = newFixedLengthResponse(status, cType, "");
+            } else {
+                response = newFixedLengthResponse(NanoHTTPD.Response.Status.PARTIAL_CONTENT, "application/octet-stream", "");
+            }
+            response.addHeader("Connection", "keep-alive");
+            String rangeHeader = headers.get("range");
+            if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
+                String rangeValue = rangeHeader.substring(6);
+                String[] ranges = rangeValue.split("-");
+                long startRange = Long.parseLong(ranges[0]);
+                long endRange = tlength - 1;
+                if (ranges.length == 2) {
+                    endRange = Long.parseLong(ranges[1]);
+                }
+                response.setStatus(NanoHTTPD.Response.Status.PARTIAL_CONTENT);
+                response.addHeader("Content-Range", "bytes " + startRange + "-" + endRange + "/" + tlength);
+                response.addHeader("Content-Length", String.valueOf(endRange - startRange + 1));
+                response.addHeader("Accept-Ranges", "bytes");
+                response.setData(inputStream);
+            } else {
+                response.addHeader("Content-Length", String.valueOf(tlength));
+                response.setData(inputStream);
+            }
+            return response;
+        }else{
+            return newFixedLengthResponse( "Respuesta no soportada: " + inputStream.rcode());
+        }
+    }
+
+    public static void cacheDownloader(String url, File destFile, HashMap<String, String> headers) throws IOException {
+        int currentProgress = 0;
+        int lastInformedProgress = 0;
+        Headers.Builder headersOk = new Headers.Builder();
+        for(String k: headers.keySet()){
+            headersOk.add(k, (String) Objects.requireNonNull(headers.get(k)));
+        }
+        if (cacheInfo.cacheProgress != 0){
+            headersOk.add("Range", "bytes="+ cacheInfo.cacheProgress + "-");
+        }
+        Request request = new Request.Builder().url(url).headers(headersOk.build()).build();
+        Response response = client().newCall(request).execute();
+        ResponseBody body = response.body();
+        cacheInfo.contentType = response.header("Content-Type");
+        if (cacheInfo.cacheProgress == 0){
+            cacheInfo.cacheTotalLength = body.contentLength();
+        }
+        if(response.code() != 206){
+            cacheInfo.cacheProgress = 0;
+        }
+        BufferedSource source = body.source();
+        BufferedSink sink = Okio.buffer(Okio.sink(destFile, response.code() == 206));
+        Buffer sinkBuffer = sink.getBuffer();
+        long totalBytesRead = 0;
+        int bufferSize = 8192;
+        cacheInfo.cacheStatus = 1;
+        for (long bytesRead; (bytesRead = source.read(sinkBuffer, bufferSize)) != -1; ) {
+            sink.emit();
+            totalBytesRead += bytesRead;
+            currentProgress = (int) ((totalBytesRead * 100) / cacheInfo.cacheTotalLength);
+            sink.flush();
+            if(currentProgress > lastInformedProgress){
+                lastInformedProgress = currentProgress;
+                cacheInfo.setProgress(currentProgress);
+            }
+            cacheInfo.cacheProgress = totalBytesRead;
+            if(cacheInfo.cacheStop){
+                break;
+            }
+        }
+        sink.flush();
+        sink.close();
+        source.close();
+        cacheInfo.cacheStatus = 2;
+        Log.d("chache", "---------------------------------_terminado__________________________________");
+    }
+    public static NanoHTTPD.Response returnCache(NanoHTTPD.IHTTPSession session) {
+        Map<String,String> headers = session.getHeaders();
+        long start = 0;
+        int maxWait = 10; // max wait 30 seconds for start download
+        while (cacheInfo.cacheProgress == 0) {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                // ignore
+            }
+            maxWait--;
+            if (maxWait == 0) {
+                return newFixedLengthResponse(NanoHTTPD.Response.Status.INTERNAL_ERROR, "text/plain", "");
+            }
+        }
+        long end = cacheInfo.cacheTotalLength;
+        NanoHTTPD.Response response;
+        if (cacheInfo.contentType != null && cacheInfo.contentType.length() > 2) {
+            response = newFixedLengthResponse(NanoHTTPD.Response.Status.PARTIAL_CONTENT, cacheInfo.contentType, "");
+        } else {
+            response = newFixedLengthResponse(NanoHTTPD.Response.Status.PARTIAL_CONTENT, "application/octet-stream", "");
+        }
+        response.addHeader("Connection", "keep-alive");
+
+        String rangeHeader = headers.get("range");
+        if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
+            String rangeValue = rangeHeader.substring(6);
+            String[] ranges = rangeValue.split("-");
+            long startRange = Long.parseLong(ranges[0]);
+            long endRange = cacheInfo.cacheTotalLength - 1;
+            if (ranges.length == 2) {
+                endRange = Long.parseLong(ranges[1]);
+            }
+
+            response.setStatus(NanoHTTPD.Response.Status.PARTIAL_CONTENT);
+            response.addHeader("Content-Range", "bytes " + startRange + "-" + endRange + "/" + cacheInfo.cacheTotalLength);
+            response.addHeader("Content-Length", String.valueOf(endRange - startRange + 1));
+            response.addHeader("Accept-Ranges", "bytes");
+
+            // Enviar los bytes correspondientes al rango desde el archivo local
+            try (InputStream inputStream = new CacheFileInputStream(cacheInfo, Updates.path +"/cache.mp4", startRange, endRange)) {
+                response.setData(inputStream);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            response.addHeader("Content-Length", String.valueOf(cacheInfo.cacheTotalLength));
+            try (InputStream inputStream = new CacheFileInputStream(cacheInfo, Updates.path +"/cache.mp4", 0, cacheInfo.cacheTotalLength)) {
+                response.setData(inputStream);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        return response;
+    }
+
+
+    public static NanoHTTPD.Response cache(NanoHTTPD.IHTTPSession session, String url, HashMap<String, String> headers) {        url = dec(url);
+        if(!cacheInfo.cacheLink.equals(url)){
+            if(cacheInfo.cacheThread != null){
+                cacheInfo.cacheStop = true;
+            }
+            cacheInfo.cacheLink = url;
+            cacheInfo.cacheProgress = 0;
+            cacheInfo.cacheThread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    int errorCount = 0;
+                    while ((errorCount < 10) && !cacheInfo.cacheStop && (cacheInfo.cacheStatus != 2)) {
+                        try {
+                            cacheDownloader(cacheInfo.cacheLink, new File(Updates.path, "cache.mp4"), headers);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            errorCount++;
+                            try {
+                                Thread.sleep(3000);
+                            } catch (InterruptedException ex) {
+                                throw new RuntimeException(ex);
+                            }
+                        }
+                    }
+                }
+            });
+            cacheInfo.cacheStop = false;
+            cacheInfo.cacheThread.start();
+        }
+        return returnCache(session);
+    }
+
     public static String dec(String _in){
         try {
             return new String(Base64.decode(_in.replace("_","/").getBytes(), Base64.DEFAULT), "UTF-8");
@@ -137,24 +335,84 @@ public class InetTools {
     }
 
     public static void download(String url, File destFile) throws IOException {
+        cacheInfo.cacheLink = url;
         Request request = new Request.Builder().url(url).build();
-        Response response = client.newCall(request).execute();
+        Response response = client().newCall(request).execute();
         ResponseBody body = response.body();
         long contentLength = body.contentLength();
         BufferedSource source = body.source();
-
         BufferedSink sink = Okio.buffer(Okio.sink(destFile));
         Buffer sinkBuffer = sink.buffer();
-
         long totalBytesRead = 0;
         int bufferSize = 8 * 1024;
+        cacheInfo.cacheStatus = 1;
         for (long bytesRead; (bytesRead = source.read(sinkBuffer, bufferSize)) != -1; ) {
             sink.emit();
             totalBytesRead += bytesRead;
-            int progress = (int) ((totalBytesRead * 100) / contentLength);
+            //int progress = (int) ((totalBytesRead * 100) / contentLength);
+            sink.flush();
+            cacheInfo.cacheProgress = totalBytesRead;
         }
         sink.flush();
         sink.close();
         source.close();
+        cacheInfo.cacheStatus = 2;
+    }
+    public static long[] parseRangeHeader(String rangeHeader, long defaultStart, long defaultEnd) {
+        long[] range = new long[2];
+        if (rangeHeader == null || rangeHeader.isEmpty()) {
+            range[0] = defaultStart;
+            range[1] = defaultEnd;
+            return range;
+        }
+        Pattern pattern = Pattern.compile("bytes=(\\d*)-(\\d*)");
+        Matcher matcher = pattern.matcher(rangeHeader);
+        if (matcher.find()) {
+            String startValue = matcher.group(1);
+            String endValue = matcher.group(2);
+            long start = startValue.isEmpty() ? defaultStart : Long.parseLong(startValue);
+            long end = endValue.isEmpty() ? defaultEnd : Long.parseLong(endValue);
+            range[0] = start;
+            range[1] = end;
+        } else {
+            range[0] = defaultStart;
+            range[1] = defaultEnd;
+        }
+        return range;
+    }
+
+
+    public static class CacheInfo{
+        long cacheProgress = 0;
+        long cacheTotalLength = 0;
+        short cacheStatus = 0; //| 0 waiting | 1 running | 2 finished | -1 error |
+        Thread cacheThread = null;
+        boolean cacheStop = false;
+        String cacheLink = "";
+        String contentType = "";
+        private int cacheProgressPs = 0;
+
+        CacheListener cacheListener = null;
+        void setProgress(int cacheProgress){
+            if((cacheListener != null) && (cacheProgressPs != cacheProgress)){
+                cacheListener.onCacheProgressUpdate(cacheProgress);
+            }
+        }
+        void setCacheListener(CacheListener newCacheListener){
+            cacheListener = newCacheListener;
+        }
+
+        public void deleteFile() {
+            try {
+                Thread.sleep(1000);
+                Files.deleteIfExists(new File(Updates.path, "cache.mp4").toPath());
+            } catch (IOException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public static interface CacheListener{
+        void onCacheProgressUpdate(int progress);
     }
 }

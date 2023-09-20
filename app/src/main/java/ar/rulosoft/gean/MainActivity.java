@@ -1,6 +1,10 @@
 package ar.rulosoft.gean;
 
 import static android.view.KeyEvent.KEYCODE_BACK;
+import static android.view.KeyEvent.KEYCODE_MUTE;
+import static android.view.KeyEvent.KEYCODE_VOLUME_DOWN;
+import static android.view.KeyEvent.KEYCODE_VOLUME_MUTE;
+import static android.view.KeyEvent.KEYCODE_VOLUME_UP;
 
 import android.app.UiModeManager;
 import android.content.Intent;
@@ -112,7 +116,6 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        // Captura y procesa las pulsaciones de teclas aquí
         int action = event.getAction();
         int keyCode = event.getKeyCode();
 
@@ -121,39 +124,51 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
                 webView.loadUrl("javascript:android.onData(window.backStack.length)");
                 return true;
             }
-            Log.e("mmu", " "+keyCode);
             int nkey = keyCode;
-            char key = ' ';
+            String key = " ";
             switch (nkey){
                 case 66:
                 case 23:
                     nkey = 13;//enter
+                    key = "Enter";
                     break;
                 case 19:
                     nkey = 38;
+                    key = "ArrowUp";
                     break;
                 case 20:
                     nkey = 40;
+                    key = "ArrowDown";
+
                     break;
                 case 22:
                     nkey = 39;
+                    key = "ArrowRight";
                     break;
                 case 21:
                     nkey = 37;
+                    key = "ArrowLeft";
                     break;
                 case 62:
                     nkey = 32;
+                    key = "Space";
                     break;
                 case 67:
+                    key = "Backspace";
                     nkey = 8;
                     break;
+                case KEYCODE_VOLUME_UP:
+                case KEYCODE_VOLUME_DOWN:
+                case KEYCODE_VOLUME_MUTE:
+                case KEYCODE_MUTE:
+                    return super.dispatchKeyEvent(event);
                 default:
                     if(keyCode <=16 && keyCode >=7){
                         nkey = keyCode + 89;
-                        key = (char) nkey;
+                        key = "KEY" +  ((char) nkey);
                     }else if(keyCode <=54 && keyCode >=29){
                         nkey = keyCode + 36;
-                        key = (char) nkey;
+                        key = "KEY" +  ((char) nkey);
                     }
 
             }
@@ -214,24 +229,24 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
 
 
     public void start() {
+        //Intent intent = new Intent(this, HttpService.class);
+        //startService(intent);
         try {
-            Server server = Server.getInstance();
-            server.start(MainActivity.this);
-            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-            String page = "";
-            if(isAndroidTv()){
-                page = "_2";
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                if (0 != (getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE))
-                { WebView.setWebContentsDebuggingEnabled(true); }
-                page = "_2";
-            }
-            webView.loadUrl("http://127.0.0.1:8080/main" + page + ".html");
+            Server.getInstance().startServer(MainActivity.this);
         } catch (IOException e) {
-            e.printStackTrace();
-            Server.getInstance().stop();
+            throw new RuntimeException(e);
         }
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        String page = "";
+        if(isAndroidTv()){
+            page = "_2";
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            if (0 != (getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE))
+            { WebView.setWebContentsDebuggingEnabled(true); }
+            //page = "_2";
+        }
+        webView.loadUrl("http://127.0.0.1:8080/main" + page + ".html");
     }
 
 

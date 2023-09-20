@@ -32,7 +32,11 @@
         android:theme="@style/Theme.Gean"
         android:usesCleartextTraffic="true">
         <activity
-
+            android:screenOrientation="landscape"
+            android:name=".PlayActivity"
+            android:theme="@style/Theme.Gean.NoActionBar.Fullscreen"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
             android:banner="@mipmap/ic_launcher"
             android:configChanges="orientation|screenSize"
