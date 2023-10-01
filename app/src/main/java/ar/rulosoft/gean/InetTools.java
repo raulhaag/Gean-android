@@ -215,6 +215,7 @@ public class InetTools {
         long totalBytesRead = 0;
         int bufferSize = 8192;
         cacheInfo.cacheStatus = 1;
+        cacheInfo.cacheStop = false;
         for (long bytesRead; (bytesRead = source.read(sinkBuffer, bufferSize)) != -1; ) {
             sink.emit();
             totalBytesRead += bytesRead;
@@ -233,7 +234,7 @@ public class InetTools {
         sink.close();
         source.close();
         cacheInfo.cacheStatus = 2;
-        Log.d("chache", "---------------------------------_terminado__________________________________");
+        //Log.d("chache", "---------------------------------_terminado__________________________________");
     }
     public static NanoHTTPD.Response returnCache(NanoHTTPD.IHTTPSession session) {
         Map<String,String> headers = session.getHeaders();
@@ -300,6 +301,7 @@ public class InetTools {
             }
             cacheInfo.cacheLink = url;
             cacheInfo.cacheProgress = 0;
+            cacheInfo.cacheStatus = 0;
             cacheInfo.cacheThread = new Thread(new Runnable() {
                 @Override
                 public void run() {

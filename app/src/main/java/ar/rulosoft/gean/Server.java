@@ -108,7 +108,15 @@ public class Server extends NanoHTTPD {
             response = "{\"host\":\"android\", \"version\":\"" + Updates.version + "\"}";
         } else if ("view".equals(fpath[1])) {
             if (parent != null) {
-                //Intent intent = new Intent(Intent.ACTION_VIEW);
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setDataAndType(Uri.parse(InetTools.dec(fpath[2])), "video/*");
+                parent.startActivity(intent);
+                response = "ok";
+            } else {
+                response = "error";
+            }
+        }else if ("play".equals(fpath[1])) {
+            if (parent != null) {
                 Intent intent = new Intent(parent, PlayActivity.class);
                 intent.setDataAndType(Uri.parse(InetTools.dec(fpath[2])), "video/*");
                 parent.startActivity(intent);

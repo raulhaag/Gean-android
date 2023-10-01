@@ -247,6 +247,7 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
             //page = "_2";
         }
         webView.loadUrl("http://127.0.0.1:8080/main" + page + ".html");
+        //webView.loadUrl("http://192.168.0.165:5500/main" + page + ".html");
     }
 
 
