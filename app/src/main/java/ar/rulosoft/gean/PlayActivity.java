@@ -64,6 +64,13 @@ public class PlayActivity extends AppCompatActivity
     private ProgressBar bufferProgress;
 
     private long lastUpPress = 0;
+    int[] increments = {5000, 10000, 15000, 30000, 30000, 60000, 300000, 600000};
+    private boolean doublepress = false;
+    private long timeoutdoublepress = 500;
+    private int lastPressedKeyCode = -1;
+    private long lastPressedTime = -1;
+    private int doubleAccumulator = 0;
+    private int maxDoubleAccumulator = 7;
     // Activity lifecycle.
 
     @Override
@@ -187,15 +194,28 @@ public class PlayActivity extends AppCompatActivity
     @Override
     public void onBackPressed() {
         InetTools.cacheInfo.cacheStop = true;
+        InetTools.cacheInfo.cacheLink = "";
         InetTools.cacheInfo.deleteFile();
         super.onBackPressed();
     }
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-
         int action = event.getAction();
         int keyCode = event.getKeyCode();
+        doublepress = lastPressedKeyCode == keyCode &&
+                        System.currentTimeMillis() - lastPressedTime - timeoutdoublepress < 0;
+        lastPressedKeyCode = keyCode;
+        lastPressedTime = System.currentTimeMillis();
+        if (doublepress) {
+            doubleAccumulator += 1;
+            doubleAccumulator = Math.min(
+                    maxDoubleAccumulator,
+                    doubleAccumulator);
+        } else {
+            doubleAccumulator = 0;
+        }
+
         if(action == ACTION_DOWN) {
             if(keyCode == KEYCODE_BACK){
                 onBackPressed();
@@ -221,10 +241,12 @@ public class PlayActivity extends AppCompatActivity
                     lastUpPress = ctime;
                     break;
                 case 22://right
-                    player.seekTo(player.getCurrentPosition() + 5000);
+                    playerView.showController();
+                    player.seekTo(player.getCurrentPosition() + increments[doubleAccumulator]);
                     break;
                 case 21://left
-                    player.seekTo(player.getCurrentPosition() - 5000);
+                    playerView.showController();
+                    player.seekTo(player.getCurrentPosition() - increments[doubleAccumulator]);
                     break;
                 default:
                     return super.dispatchKeyEvent(event);
