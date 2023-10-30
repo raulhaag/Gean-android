@@ -17,7 +17,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -52,12 +54,13 @@ public class InetTools {
         }
         return mClient;
     }
-    public static String get(String url, HashMap<String, String> headers) {
+    public static String get(String url, HashMap<String, String> headers, ArrayList<String> setCookie) {
         Request.Builder request = new Request.Builder().url(url);
         for (String k : headers.keySet()) {
             request.addHeader(k, headers.get(k));
         }
         try (Response response = client().newCall(request.build()).execute()) {
+            setCookie.addAll(response.headers("set-cookie"));
             return response.body().string();
         } catch (IOException e) {
             e.printStackTrace();
@@ -407,8 +410,11 @@ public class InetTools {
         public void deleteFile() {
             try {
                 Thread.sleep(1000);
-                Files.deleteIfExists(new File(Updates.path, "cache.mp4").toPath());
-            } catch (IOException | InterruptedException e) {
+                File file = new File(Updates.path, "cache.mp4");
+                if(file.exists()){
+                    file.delete();
+                }
+            } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
         }

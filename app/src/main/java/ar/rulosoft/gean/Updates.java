@@ -7,6 +7,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -18,7 +19,7 @@ public class Updates {
 
     public static void checkUpdates() throws IOException {
         if (new File(path, "version").exists()) {
-            version = InetTools.get("https://raw.githubusercontent.com/raulhaag/gean/master/version", new HashMap<>());
+            version = InetTools.get("https://raw.githubusercontent.com/raulhaag/gean/master/version", new HashMap<>(), new ArrayList<>());
             String[] r_version = version.split("\\.");
             String[] l_version = new BufferedReader(new FileReader(new File(path, "version"))).readLine().split("\\.");
 
