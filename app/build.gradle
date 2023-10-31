@@ -6,17 +6,32 @@ plugins {
 android {
     compileSdk 33
 
-    defaultConfig {
-        applicationId "ar.rulosoft.gean"
-        minSdk 21
-        targetSdk 33
-        versionCode 1
-        versionName "1.0"
+    def versionPropsFile = file('version.properties')
+    if (versionPropsFile.canRead()) {
+        def Properties versionProps = new Properties()
+        versionProps.load(new FileInputStream(versionPropsFile))
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        def code = versionProps['VERSION_CODE'].toInteger() + 1
+
+        versionProps['VERSION_CODE'] = code.toString()
+        versionProps.store(versionPropsFile.newWriter(), null)
+
+        defaultConfig {
+            applicationId "ar.rulosoft.gean"
+            minSdk 21
+            //noinspection EditedTargetSdkVersion
+            targetSdk 33
+            versionCode code
+            versionName "1.0"
+
+            testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        }
+    }else{
+        throw new GradleException("Could not read version.properties!")
     }
 
-    splits {
+
+        splits {
 
         // Configures multiple APKs based on ABI.
         abi {
@@ -54,6 +69,7 @@ android {
         viewBinding true
     }
     namespace 'ar.rulosoft.gean'
+    buildToolsVersion '34.0.0'
 }
 
 dependencies {

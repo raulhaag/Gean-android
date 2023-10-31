@@ -18,13 +18,16 @@ import android.os.Build;
 import android.os.Bundle;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.PersistableBundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -66,10 +69,16 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
         } else finish();
     }
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager()) {
+                MainActivity.this.startActivity(
+                        new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                Uri.parse("package:" + BuildConfig.APPLICATION_ID)));
+            }
+        }
         Updates.path = getFilesDir();
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         webView = binding.webview;
@@ -79,15 +88,14 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
                 loadScreen.setVisibility(View.GONE);
             }
         });
-        webView.setWebChromeClient(new MainActivity.MyChrome());
+        webView.setWebChromeClient(new MyChrome());
         webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
         webView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
         webView.getSettings().setSaveFormData(true);
-
         webView.addJavascriptInterface(this, "android");
-        new MainActivity.AsyncStart().execute();
+        new AsyncStart().execute();
         setContentView(binding.getRoot());
         try {
             lip = Server.getFirstNonLoopbackAddress(true, false).toString().replace("/", "");
@@ -95,6 +103,7 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
         } catch (SocketException e) {
             e.printStackTrace();
         }
+
     }
 
     @Override
@@ -254,7 +263,7 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
         @Override
         protected Void doInBackground(Void... voids) {
             try {
-                Updates.checkUpdates();
+                Updates.checkUpdates(MainActivity.this);
                 Server.generateSourceList();
             } catch (IOException e) {
                 e.printStackTrace();
