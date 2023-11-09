@@ -74,9 +74,13 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
         super.onCreate(savedInstanceState);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
-                MainActivity.this.startActivity(
-                        new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                                Uri.parse("package:" + BuildConfig.APPLICATION_ID)));
+                try {
+                    MainActivity.this.startActivity(
+                            new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                    Uri.parse("package:" + BuildConfig.APPLICATION_ID)));
+                }catch (Exception ignored){
+
+                }
             }
         }
         Updates.path = getFilesDir();
