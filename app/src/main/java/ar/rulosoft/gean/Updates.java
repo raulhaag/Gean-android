@@ -37,7 +37,7 @@ public class Updates {
             int ri_version = Integer.parseInt(r_version[0]) * 100000000 + Integer.parseInt(r_version[1]) * 100000 + Integer.parseInt(r_version[2]);
             int li_version = Integer.parseInt(l_version[0]) * 100000000 + Integer.parseInt(l_version[1]) * 100000 + Integer.parseInt(l_version[2]);
             if (r_version.length > 3) {
-                if (BuildConfig.VERSION_CODE < Integer.parseInt(l_version[3])) {
+                if (BuildConfig.VERSION_CODE < Integer.parseInt(r_version[3])) {
                     String docpatch = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).getAbsolutePath();
                     File dir = new File(docpatch, "Gean");
                     dir.mkdirs();
