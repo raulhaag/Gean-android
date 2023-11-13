@@ -45,7 +45,7 @@ public class Updates {
                     if (up.exists()) {
                         up.delete();
                     }
-                    InetTools.download("https://github.com/raulhaag/Gean-android/raw/master/app/build/outputs/apk/debug/app-universal-debug.apk", up);
+                    InetTools.download("https://github.com/raulhaag/Gean-android/raw/master/app/release/app-universal-release.apk", up);
                     Uri upUri = FileProvider.getUriForFile(context, context.getApplicationContext().getPackageName() + ".provider", up);
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     intent.setDataAndType(upUri, "application/vnd.android.package-archive");
