@@ -36,30 +36,30 @@ public class Updates {
 
             int ri_version = Integer.parseInt(r_version[0]) * 100000000 + Integer.parseInt(r_version[1]) * 100000 + Integer.parseInt(r_version[2]);
             int li_version = Integer.parseInt(l_version[0]) * 100000000 + Integer.parseInt(l_version[1]) * 100000 + Integer.parseInt(l_version[2]);
-            if(r_version.length > 3){
-                if(BuildConfig.VERSION_CODE < Integer.parseInt(l_version[3])){
-            String docpatch = Environment.getExternalStoragePublicDirectory( Environment.DIRECTORY_DOCUMENTS).getAbsolutePath();
-            File dir = new File(docpatch,"Gean");
-            dir.mkdirs();
-            File up = new File(dir, "update.apk");
-            if (up.exists()) {
-                up.delete();
+            if (r_version.length > 3) {
+                if (BuildConfig.VERSION_CODE < Integer.parseInt(l_version[3])) {
+                    String docpatch = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).getAbsolutePath();
+                    File dir = new File(docpatch, "Gean");
+                    dir.mkdirs();
+                    File up = new File(dir, "update.apk");
+                    if (up.exists()) {
+                        up.delete();
+                    }
+                    InetTools.download("https://github.com/raulhaag/Gean-android/raw/master/app/build/outputs/apk/debug/app-universal-debug.apk", up);
+                    Uri upUri = FileProvider.getUriForFile(context, context.getApplicationContext().getPackageName() + ".provider", up);
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(upUri, "application/vnd.android.package-archive");
+                    List<ResolveInfo> resInfoList = context.getPackageManager().queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
+                    for (ResolveInfo resolveInfo : resInfoList) {
+                        String packageName = resolveInfo.activityInfo.packageName;
+                        context.grantUriPermission(packageName, upUri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    }
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                }
             }
-            InetTools.download("https://github.com/raulhaag/Gean-android/raw/master/app/build/outputs/apk/debug/app-universal-debug.apk", up);
-            Uri upUri = FileProvider.getUriForFile(context, context.getApplicationContext().getPackageName() + ".provider", up);
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            intent.setDataAndType(upUri, "application/vnd.android.package-archive");
-            List<ResolveInfo> resInfoList = context.getPackageManager().queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
-            for (ResolveInfo resolveInfo : resInfoList) {
-                String packageName = resolveInfo.activityInfo.packageName;
-                context.grantUriPermission(packageName, upUri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            }
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(intent);
-               }
-            }
-            if(ri_version <= li_version){
+            if (ri_version <= li_version) {
                 Log.i("Version gean", version);
                 return;
             }
@@ -95,7 +95,7 @@ public class Updates {
                 try {
                     File dir = new File(filePath);
                     dir.mkdirs();
-                }catch (Exception e){
+                } catch (Exception e) {
                     //ignore
                 }
             }
