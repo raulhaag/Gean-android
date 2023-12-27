@@ -18,7 +18,6 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -32,10 +31,10 @@ import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
 import androidx.media3.common.TrackSelectionParameters;
 import androidx.media3.common.Tracks;
+import androidx.media3.common.util.UnstableApi;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.mediacodec.MediaCodecRenderer.DecoderInitializationException;
 import androidx.media3.exoplayer.mediacodec.MediaCodecUtil.DecoderQueryException;
-import androidx.media3.exoplayer.util.DebugTextViewHelper;
 import androidx.media3.exoplayer.util.EventLogger;
 import androidx.media3.ui.PlayerView;
 
@@ -73,7 +72,7 @@ public class PlayActivity extends AppCompatActivity
     private int maxDoubleAccumulator = 7;
     // Activity lifecycle.
 
-    @Override
+    @OptIn(markerClass = UnstableApi.class) @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -199,7 +198,7 @@ public class PlayActivity extends AppCompatActivity
         super.onBackPressed();
     }
 
-    @Override
+    @OptIn(markerClass = UnstableApi.class) @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         int action = event.getAction();
         int keyCode = event.getKeyCode();
@@ -273,9 +272,9 @@ public class PlayActivity extends AppCompatActivity
     }
 
     /**
-     * @return Whether initialization was successful.
+     *
      */
-    protected boolean initializePlayer() {
+    protected void initializePlayer() {
         if (player == null) {
             Intent intent = getIntent();
             Context context = getApplicationContext();
@@ -334,7 +333,6 @@ public class PlayActivity extends AppCompatActivity
 
         player.prepare();
         player.play();
-        return true;
     }
 
 

@@ -1,31 +1,21 @@
 package ar.rulosoft.gean;
 
 import static fi.iki.elonen.NanoHTTPD.newFixedLengthResponse;
-
 import android.util.Base64;
-import android.util.Log;
-
 import com.grack.nanojson.JsonObject;
 import com.grack.nanojson.JsonParser;
 import com.grack.nanojson.JsonParserException;
-import com.sun.net.httpserver.HttpExchange;
-
-import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import fi.iki.elonen.NanoHTTPD;
 import okhttp3.FormBody;
 import okhttp3.Headers;
@@ -68,31 +58,6 @@ public class InetTools {
         return "";
     }
 
-    public static void get(String url, HashMap<String, String> headers, HttpExchange he) {
-        Request.Builder request = new Request.Builder().url(url);
-        for (String k : headers.keySet()) {
-            request.addHeader(k, headers.get(k));
-        }
-        try (Response response = client().newCall(request.build()).execute()) {
-            double length = Double.parseDouble(Objects.requireNonNull(response.header("Content-Length", "1")));
-            he.sendResponseHeaders(200, (long) length);
-            OutputStream os = he.getResponseBody();
-            byte[] data = new byte[8192];
-            InputStream is = response.body().byteStream();
-            BufferedInputStream input = new BufferedInputStream(is);
-            int count = 0;
-            while ((count = input.read(data)) != -1) {
-                os.write(data, 0, count);
-                os.flush();
-            }
-            os.flush();
-            os.close();
-            input.close();
-            is.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
     public static String rget(String url, HashMap<String, String> headers) {
         Request.Builder request = new Request.Builder().url(url);

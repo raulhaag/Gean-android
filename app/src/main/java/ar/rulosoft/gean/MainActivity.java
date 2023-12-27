@@ -16,13 +16,6 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-
-import androidx.activity.OnBackPressedCallback;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
@@ -30,17 +23,9 @@ import android.os.PersistableBundle;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.KeyEvent;
-import android.view.View;
-
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
-import androidx.navigation.ui.AppBarConfiguration;
-import androidx.navigation.ui.NavigationUI;
-
-import ar.rulosoft.gean.databinding.ActivityMainBinding;
-
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
@@ -49,10 +34,16 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 
+import androidx.activity.OnBackPressedCallback;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.navigation.ui.AppBarConfiguration;
+
 import java.io.IOException;
 import java.net.SocketException;
 
-import ar.rulosoft.gean.Server;
+import ar.rulosoft.gean.databinding.ActivityMainBinding;
 
 public class MainActivity extends AppCompatActivity implements KeyEvent.Callback {
     private AppBarConfiguration appBarConfiguration;

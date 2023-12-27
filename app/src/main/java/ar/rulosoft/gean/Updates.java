@@ -19,7 +19,9 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Environment;
+import android.os.Handler;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
 
@@ -70,6 +72,8 @@ public class Updates {
         if (up.exists()) {
             up.delete();
         }
+        Handler handler =  new Handler(context.getMainLooper());
+        handler.post(() -> Toast.makeText(context,"Descargando actualización web", Toast.LENGTH_LONG).show());
         InetTools.download("https://github.com/raulhaag/gean/archive/refs/heads/master.zip", up);
         unzipUpdate(up.getAbsolutePath(), path.getAbsolutePath());
     }
