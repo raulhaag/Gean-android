@@ -31,11 +31,11 @@ public class Updates {
     static String version;
 
     public static void checkUpdates(Context context) throws IOException {
+        Handler handler =  new Handler(context.getMainLooper());
         if (new File(path, "version").exists()) {
             version = InetTools.get("https://raw.githubusercontent.com/raulhaag/gean/master/version", new HashMap<>(), new ArrayList<>());
             String[] r_version = version.split("\\.");
             String[] l_version = new BufferedReader(new FileReader(new File(path, "version"))).readLine().split("\\.");
-
             int ri_version = Integer.parseInt(r_version[0]) * 100000000 + Integer.parseInt(r_version[1]) * 100000 + Integer.parseInt(r_version[2]);
             int li_version = Integer.parseInt(l_version[0]) * 100000000 + Integer.parseInt(l_version[1]) * 100000 + Integer.parseInt(l_version[2]);
             if (r_version.length > 3) {
@@ -47,6 +47,7 @@ public class Updates {
                     if (up.exists()) {
                         up.delete();
                     }
+                    handler.post(() -> Toast.makeText(context,"Descargando actualización de apk, acepta los pasos para instalar la nueva versión", Toast.LENGTH_LONG).show());
                     InetTools.download("https://github.com/raulhaag/Gean-android/raw/master/app/release/app-universal-release.apk", up);
                     Uri upUri = FileProvider.getUriForFile(context, context.getApplicationContext().getPackageName() + ".provider", up);
                     Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -72,7 +73,6 @@ public class Updates {
         if (up.exists()) {
             up.delete();
         }
-        Handler handler =  new Handler(context.getMainLooper());
         handler.post(() -> Toast.makeText(context,"Descargando actualización web", Toast.LENGTH_LONG).show());
         InetTools.download("https://github.com/raulhaag/gean/archive/refs/heads/master.zip", up);
         unzipUpdate(up.getAbsolutePath(), path.getAbsolutePath());
