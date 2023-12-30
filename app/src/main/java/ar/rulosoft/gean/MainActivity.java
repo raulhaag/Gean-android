@@ -33,6 +33,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
+import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
@@ -42,6 +43,7 @@ import androidx.navigation.ui.AppBarConfiguration;
 
 import java.io.IOException;
 import java.net.SocketException;
+import java.util.Objects;
 
 import ar.rulosoft.gean.databinding.ActivityMainBinding;
 
@@ -51,13 +53,22 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
     String ipaddres = "", lip;
     WebView webView;
     FrameLayout loadScreen;
+    long lastTimeBackPressed = 0;
 
     @JavascriptInterface
     public void onData(String value) {
         Log.i("onData", value);
         if (!"0".equals(value)) {
             new Handler(Looper.getMainLooper()).post(() -> webView.loadUrl("javascript:backClick()"));
-        } else finish();
+        } else {
+            long cTime = System.currentTimeMillis();
+            if(cTime - lastTimeBackPressed < 1500) {
+                finish();
+            }else{
+                lastTimeBackPressed = cTime;
+                Toast.makeText(getApplicationContext(),"Presiona dos veces seguidas para salir de la aplicación", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     @Override
@@ -125,7 +136,11 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
 
         if (action == KeyEvent.ACTION_DOWN) {
             if(keyCode == KEYCODE_BACK){
-                webView.loadUrl("javascript:android.onData(window.backStack.length)");
+                if(Objects.requireNonNull(webView.getUrl()).contains("main_2.")){
+                    webView.loadUrl("javascript:android.onData(window.backScenePoll.length)");
+                }else {
+                    webView.loadUrl("javascript:android.onData(window.backStack.length)");
+                }
                 return true;
             }
             int nkey = keyCode;

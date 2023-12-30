@@ -50,7 +50,6 @@ public class PlayActivity extends AppCompatActivity
     private static final String KEY_AUTO_PLAY = "auto_play";
 
     protected PlayerView playerView;
-    protected LinearLayout debugRootView;
     protected @Nullable ExoPlayer player;
 
     //private Button selectTracksButton;
@@ -233,9 +232,10 @@ public class PlayActivity extends AppCompatActivity
                     break;
                 case 19://up
                     long ctime = System.currentTimeMillis();
-                    if ((ctime - lastUpPress) < 500) {
-
+                    if ((ctime - lastUpPress) < 1000) {
                         onBackPressed();
+                    }else{
+                        Toast.makeText(getApplicationContext(), "Presiona dos veces para salir del video", Toast.LENGTH_SHORT).show();
                     }
                     lastUpPress = ctime;
                     break;
