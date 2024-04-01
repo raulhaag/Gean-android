@@ -32,11 +32,19 @@ import androidx.media3.common.Player;
 import androidx.media3.common.TrackSelectionParameters;
 import androidx.media3.common.Tracks;
 import androidx.media3.common.util.UnstableApi;
+import androidx.media3.datasource.DefaultHttpDataSource;
+import androidx.media3.datasource.HttpDataSource;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.mediacodec.MediaCodecRenderer.DecoderInitializationException;
 import androidx.media3.exoplayer.mediacodec.MediaCodecUtil.DecoderQueryException;
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.exoplayer.util.EventLogger;
 import androidx.media3.ui.PlayerView;
+
+import java.util.HashMap;
+import java.util.Map;
+
+
 
 /** An activity that plays media using {@link ExoPlayer}. */
 public class PlayActivity extends AppCompatActivity
@@ -254,12 +262,8 @@ public class PlayActivity extends AppCompatActivity
         return true;// playerView.dispatchKeyEvent(event) || super.dispatchKeyEvent(event);
     }
 
-
-
     // OnClickListener methods
-
     // PlayerView.ControllerVisibilityListener implementation
-
     @Override
     public void onVisibilityChanged(int visibility) {
         bufferProgress.setVisibility(visibility);
@@ -274,16 +278,24 @@ public class PlayActivity extends AppCompatActivity
     /**
      *
      */
-    protected void initializePlayer() {
+    @OptIn(markerClass = UnstableApi.class) protected void initializePlayer() {
         if (player == null) {
             Intent intent = getIntent();
             Context context = getApplicationContext();
+            String[] data = intent.getData().toString().split("\\|");
 
-            MediaItem mediaItem = MediaItem.fromUri(intent.getData());
+            MediaItem mediaItem = MediaItem.fromUri(data[0]);
             lastSeenTracks = Tracks.EMPTY;
             ExoPlayer.Builder playerBuilder =
                     new ExoPlayer.Builder(/* context= */ this);
             //setRenderersFactory(playerBuilder, intent.getBooleanExtra(IntentUtil.PREFER_EXTENSION_DECODERS_EXTRA, false));
+            if(data.length == 2){
+                Map<String, String> headersMap = new HashMap<>();
+                headersMap.put("Referer", data[1]);
+                HttpDataSource.Factory dataSource = new DefaultHttpDataSource.Factory().setDefaultRequestProperties(headersMap);
+                playerBuilder.setMediaSourceFactory(new DefaultMediaSourceFactory(dataSource));
+            }
+
             player = playerBuilder.build();
             player.setTrackSelectionParameters(trackSelectionParameters);
             player.addListener(new PlayerEventListener());
@@ -330,7 +342,6 @@ public class PlayActivity extends AppCompatActivity
             player.seekTo(startItemIndex, startPosition);
         }
 
-
         player.prepare();
         player.play();
     }
@@ -346,8 +357,6 @@ public class PlayActivity extends AppCompatActivity
             playerView.setPlayer(/* player= */ null);
         }
     }
-
-
 
     private void updateTrackSelectorParameters() {
         if (player != null) {
