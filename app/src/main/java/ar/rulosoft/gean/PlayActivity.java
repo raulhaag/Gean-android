@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -26,7 +27,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.media3.common.AudioAttributes;
 import androidx.media3.common.C;
 import androidx.media3.common.ErrorMessageProvider;
+import androidx.media3.common.Format;
 import androidx.media3.common.MediaItem;
+import androidx.media3.common.MimeTypes;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
 import androidx.media3.common.TrackSelectionParameters;
@@ -39,14 +42,17 @@ import androidx.media3.exoplayer.mediacodec.MediaCodecRenderer.DecoderInitializa
 import androidx.media3.exoplayer.mediacodec.MediaCodecUtil.DecoderQueryException;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.exoplayer.util.EventLogger;
+import androidx.media3.extractor.text.Subtitle;
 import androidx.media3.ui.PlayerView;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 
-
-/** An activity that plays media using {@link ExoPlayer}. */
+/**
+ * An activity that plays media using {@link ExoPlayer}.
+ */
 public class PlayActivity extends AppCompatActivity
         implements OnClickListener, PlayerView.ControllerVisibilityListener {
 
@@ -79,7 +85,8 @@ public class PlayActivity extends AppCompatActivity
     private int maxDoubleAccumulator = 7;
     // Activity lifecycle.
 
-    @OptIn(markerClass = UnstableApi.class) @Override
+    @OptIn(markerClass = UnstableApi.class)
+    @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -205,12 +212,13 @@ public class PlayActivity extends AppCompatActivity
         super.onBackPressed();
     }
 
-    @OptIn(markerClass = UnstableApi.class) @Override
+    @OptIn(markerClass = UnstableApi.class)
+    @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         int action = event.getAction();
         int keyCode = event.getKeyCode();
         doublepress = lastPressedKeyCode == keyCode &&
-                        System.currentTimeMillis() - lastPressedTime - timeoutdoublepress < 0;
+                System.currentTimeMillis() - lastPressedTime - timeoutdoublepress < 0;
         lastPressedKeyCode = keyCode;
         lastPressedTime = System.currentTimeMillis();
         if (doublepress) {
@@ -222,8 +230,8 @@ public class PlayActivity extends AppCompatActivity
             doubleAccumulator = 0;
         }
 
-        if(action == ACTION_DOWN) {
-            if(keyCode == KEYCODE_BACK){
+        if (action == ACTION_DOWN) {
+            if (keyCode == KEYCODE_BACK) {
                 onBackPressed();
             }
 
@@ -242,7 +250,7 @@ public class PlayActivity extends AppCompatActivity
                     long ctime = System.currentTimeMillis();
                     if ((ctime - lastUpPress) < 1000) {
                         onBackPressed();
-                    }else{
+                    } else {
                         Toast.makeText(getApplicationContext(), "Presiona dos veces para salir del video", Toast.LENGTH_SHORT).show();
                     }
                     lastUpPress = ctime;
@@ -278,18 +286,28 @@ public class PlayActivity extends AppCompatActivity
     /**
      *
      */
-    @OptIn(markerClass = UnstableApi.class) protected void initializePlayer() {
+    @OptIn(markerClass = UnstableApi.class)
+    protected void initializePlayer() {
         if (player == null) {
             Intent intent = getIntent();
             Context context = getApplicationContext();
-            String[] data = intent.getData().toString().split("\\|");
-
-            MediaItem mediaItem = MediaItem.fromUri(data[0]);
+            String[] subtitleSepare = intent.getData().toString().split("\\|\\|subtitle:");
+            String[] data = subtitleSepare[0].split("\\|");
+            MediaItem.Builder mediaItemBuilder = new MediaItem.Builder();
+            mediaItemBuilder.setUri(data[0]);
+            if (subtitleSepare.length == 2) {
+                MediaItem.SubtitleConfiguration.Builder scb = new MediaItem.SubtitleConfiguration.Builder(Uri.parse(subtitleSepare[1]));
+                scb.setMimeType(MimeTypes.TEXT_VTT);
+                scb.setLanguage("es");
+                scb.setSelectionFlags(C.SELECTION_FLAG_DEFAULT);
+                mediaItemBuilder.setSubtitleConfigurations(Collections.singletonList(scb.build()));
+            }
+            MediaItem mediaItem = mediaItemBuilder.build();
             lastSeenTracks = Tracks.EMPTY;
             ExoPlayer.Builder playerBuilder =
                     new ExoPlayer.Builder(/* context= */ this);
             //setRenderersFactory(playerBuilder, intent.getBooleanExtra(IntentUtil.PREFER_EXTENSION_DECODERS_EXTRA, false));
-            if(data.length == 2){
+            if (data.length == 2) {
                 Map<String, String> headersMap = new HashMap<>();
                 headersMap.put("Referer", data[1]);
                 HttpDataSource.Factory dataSource = new DefaultHttpDataSource.Factory().setDefaultRequestProperties(headersMap);
@@ -307,9 +325,9 @@ public class PlayActivity extends AppCompatActivity
             player.addListener(new Player.Listener() {
                 @Override
                 public void onPositionDiscontinuity(Player.PositionInfo oldPosition, Player.PositionInfo newPosition, int reason) {
-                    if(reason == Player.DISCONTINUITY_REASON_SEEK){
+                    if (reason == Player.DISCONTINUITY_REASON_SEEK) {
                         Log.e("seeking", " " + newPosition.toString());
-                    }else{
+                    } else {
                         Log.e("dicontinuity", "other_reason");
                     }
                     Player.Listener.super.onPositionDiscontinuity(oldPosition, newPosition, reason);
@@ -333,7 +351,7 @@ public class PlayActivity extends AppCompatActivity
             });
             // debugViewHelper = new DebugTextViewHelper(player, debugTextView);
             //debugViewHelper.start();
-            if(intent.getData().toString().contains("/cache/")){
+            if (intent.getData().toString().contains("/cache/")) {
 
             }
         }
@@ -345,7 +363,6 @@ public class PlayActivity extends AppCompatActivity
         player.prepare();
         player.play();
     }
-
 
 
     protected void releasePlayer() {
