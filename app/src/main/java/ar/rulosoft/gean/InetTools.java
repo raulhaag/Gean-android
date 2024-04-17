@@ -2,6 +2,8 @@ package ar.rulosoft.gean;
 
 import static fi.iki.elonen.NanoHTTPD.newFixedLengthResponse;
 import android.util.Base64;
+import android.util.Pair;
+
 import com.grack.nanojson.JsonObject;
 import com.grack.nanojson.JsonParser;
 import com.grack.nanojson.JsonParserException;
@@ -29,10 +31,10 @@ import okio.BufferedSource;
 import okio.Okio;
 
 public class InetTools {
-
+    private static String lastM3U8BaseServer = "";
+    private static String lastM3U8BaseHeaders = "";
     public static CacheInfo cacheInfo = new CacheInfo();
     static OkHttpClient mClient = null;
-
     public static OkHttpClient client(){
         if(mClient == null){
             OkHttpClient.Builder builder = new OkHttpClient.Builder();
@@ -44,6 +46,7 @@ public class InetTools {
         }
         return mClient;
     }
+
     public static String get(String url, HashMap<String, String> headers, ArrayList<String> setCookie) {
         Request.Builder request = new Request.Builder().url(url);
         for (String k : headers.keySet()) {
@@ -56,6 +59,84 @@ public class InetTools {
             e.printStackTrace();
         }
         return "";
+    }
+
+    public static Pair<String, Response> getResponse(String url, HashMap<String, String> headers, ArrayList<String> setCookie) {
+        Request.Builder request = new Request.Builder().url(url);
+        for (String k : headers.keySet()) {
+            request.addHeader(k, headers.get(k));
+        }
+        try (Response response = client().newCall(request.build()).execute()) {
+            setCookie.addAll(response.headers("set-cookie"));
+            return new Pair<>(response.body().string(), response);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static String transform(String content, String baseUrl, String headers) {
+        String[] contentLines = content.split("\n");
+        for (String line : contentLines) {
+            if (line.contains(".m3u8")) {
+                if (line.startsWith("http")) {
+                    content = content.replace(line, "http://127.0.0.1:8080/m3u8/" + encode(line) + headers);
+                } else {
+                    content = content.replace(line, "http://127.0.0.1:8080/m3u8/" + encode(baseUrl + line) + headers);
+                }
+            } else if (line.matches(".+\\.\\w{2,4}$")) { // Regular expression for extension
+                if (line.startsWith("http")) {
+                    content = content.replace(line, "http://127.0.0.1:8080/file/" + encode(line) + headers);
+                } else {
+                    content = content.replace(line, "http://127.0.0.1:8080/file/" + encode(baseUrl + line) + headers);
+                }
+            }
+        }
+        return content;
+    }
+
+    public static String getParentPath(String url) {
+        int lastSlashIndex = url.lastIndexOf('/');
+        if (lastSlashIndex == -1 || lastSlashIndex == url.length() - 1) {
+            return url;
+        }
+        return url.substring(0, lastSlashIndex + 1);
+    }
+
+    public static NanoHTTPD.Response m3u8(String[] path, HashMap<String, String> headers, ArrayList<String> setCookie) {
+        String url = "";
+        String rdata = "";
+        Response response = null;
+        lastM3U8BaseServer = getParentPath(dec(path[2]));
+        if(path.length > 3 && path[3].contains(".key")){
+            url = lastM3U8BaseServer + path[3];
+            Pair<String, Response> p = getResponse(url, headers, setCookie);
+            assert p != null;
+            rdata = p.first;
+            response = p.second;
+        }else{
+            if (path.length == 4){
+                lastM3U8BaseHeaders = "/" + path[3];
+            }else{
+                lastM3U8BaseHeaders = "";
+            }
+            url = dec(path[2]);
+            Pair<String, Response> p = getResponse(url, headers, setCookie);
+            assert p != null;
+            rdata = p.first;
+            response = p.second;
+            rdata = transform(rdata, lastM3U8BaseServer, lastM3U8BaseHeaders);
+        }
+        String mime = response.header("Content-Type", "text/plain");
+        NanoHTTPD.Response nanoResponse = newFixedLengthResponse(NanoHTTPD.Response.Status.OK, mime, rdata);
+        nanoResponse.addHeader("Content-Length", "" + rdata.length()); // Set content length manually if needed
+        nanoResponse.addHeader("Access-Control-Allow-Origin", "*"); // Example header
+        nanoResponse.addHeader("Access-Control-Expose-Headers", "*"); // Example header
+        nanoResponse.addHeader("Access-Control-Allow-Headers", "*"); // Example header
+        nanoResponse.addHeader("Cache-Control", "no-cache"); // Example header
+        nanoResponse.addHeader("Content-Type", mime);
+
+        return nanoResponse;
     }
 
 
@@ -204,6 +285,7 @@ public class InetTools {
         cacheInfo.cacheStatus = 2;
         //Log.d("chache", "---------------------------------_terminado__________________________________");
     }
+
     public static NanoHTTPD.Response returnCache(NanoHTTPD.IHTTPSession session) {
         Map<String,String> headers = session.getHeaders();
         long start = 0;
@@ -261,7 +343,6 @@ public class InetTools {
         return response;
     }
 
-
     public static NanoHTTPD.Response cache(NanoHTTPD.IHTTPSession session, String url, HashMap<String, String> headers) {        url = dec(url);
         if(!cacheInfo.cacheLink.equals(url)){
             if(cacheInfo.cacheThread != null){
@@ -302,6 +383,10 @@ public class InetTools {
             e.printStackTrace();
         }
         return "{}";
+    }
+
+    public static String encode(String data) {
+        return new String(Base64.encode(data.getBytes(), Base64.DEFAULT)).replace( "/", "_").replace("\n", "");
     }
 
     public static void download(String url, File destFile) throws IOException {
@@ -350,7 +435,6 @@ public class InetTools {
         }
         return range;
     }
-
 
     public static class CacheInfo{
         long cacheProgress = 0;

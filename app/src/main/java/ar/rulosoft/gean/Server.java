@@ -72,11 +72,11 @@ public class Server extends NanoHTTPD {
     public Response serve(IHTTPSession session) {
         Uri uri = Uri.parse(session.getUri());
         String path = uri.toString();
-        String[] fpath = uri.toString().split("/");
+        String[] fpath = uri.toString().replace("/fscache.mp4", "").replace("/maskfile.ts", "").replace("/maskfile.m3u8", "").split("/");
         String response = "";
         ArrayList<String> setCookie = new ArrayList<>();
 
-        if ("get".equals(fpath[1]) || "rget".equals(fpath[1]) || "post".equals(fpath[1]) || "rpost".equals(fpath[1]) || "file".equals(fpath[1]) || "cache".equals(fpath[1])) {
+        if ("get".equals(fpath[1]) || "rget".equals(fpath[1]) || "post".equals(fpath[1]) || "rpost".equals(fpath[1]) || "file".equals(fpath[1]) || "cache".equals(fpath[1])|| "m3u8".equals(fpath[1])) {
             HashMap<String, String> headers = new HashMap<>();
             if (fpath.length > 3) {
                 headers = InetTools.jsonToHM(InetTools.dec(fpath[3]));
@@ -102,6 +102,8 @@ public class Server extends NanoHTTPD {
                 }
             } else if ("cache".equals(fpath[1])) {
                 return InetTools.cache(session, fpath[2], headers);
+            }else if ("m3u8".equals(fpath[1])){
+                return InetTools.m3u8(fpath, headers, setCookie);
             }
         }
 

@@ -100,6 +100,7 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
         webView.getSettings().setDomStorageEnabled(true);
         webView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
         webView.getSettings().setSaveFormData(true);
+        Log.e("USER AGENT", webView.getSettings().getUserAgentString());
         webView.getSettings().setUserAgentString("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36");
         webView.addJavascriptInterface(this, "android");
         new AsyncStart().execute();

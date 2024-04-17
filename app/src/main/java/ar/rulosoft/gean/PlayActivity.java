@@ -43,7 +43,9 @@ import androidx.media3.exoplayer.mediacodec.MediaCodecUtil.DecoderQueryException
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.exoplayer.util.EventLogger;
 import androidx.media3.extractor.text.Subtitle;
+import androidx.media3.ui.CaptionStyleCompat;
 import androidx.media3.ui.PlayerView;
+import androidx.media3.ui.SubtitleView;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -103,6 +105,15 @@ public class PlayActivity extends AppCompatActivity
         playerView.setControllerVisibilityListener(this);
         playerView.setErrorMessageProvider(new PlayerErrorMessageProvider());
         playerView.requestFocus();
+        SubtitleView subtitleView = playerView.getSubtitleView();
+        if (subtitleView != null) {
+            CaptionStyleCompat captionStyle = new CaptionStyleCompat(
+                    Color.WHITE, Color.TRANSPARENT, Color.TRANSPARENT,
+                    CaptionStyleCompat.EDGE_TYPE_OUTLINE, Color.BLACK, null
+            );
+            subtitleView.setFractionalTextSize(0.08f);
+            subtitleView.setStyle(captionStyle);
+        }
 
         if (savedInstanceState != null) {
             trackSelectionParameters =
@@ -139,6 +150,15 @@ public class PlayActivity extends AppCompatActivity
     @Override
     public void onResume() {
         super.onResume();
+        View decorView = getWindow().getDecorView();
+        // Hide both the navigation bar and the status bar.
+        // SYSTEM_UI_FLAG_FULLSCREEN is only available on Android 4.1 and higher, but as
+        // a general rule, you should design your app to hide the status bar whenever you
+        // hide the navigation bar.
+        int uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_FULLSCREEN;
+        decorView.setSystemUiVisibility(uiOptions);
+
         if (Build.VERSION.SDK_INT <= 23 || player == null) {
             initializePlayer();
             if (playerView != null) {
