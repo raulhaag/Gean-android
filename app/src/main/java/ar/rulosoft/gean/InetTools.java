@@ -11,6 +11,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -75,6 +77,19 @@ public class InetTools {
         return null;
     }
 
+    public static String eliminarPathRelativos(String url) {
+        try {
+            url = url.substring(0, 8) + url.substring(8).replace("//", "/");
+            URI uri = new URI(url);
+            URI uriAbsoluta = uri.normalize();
+            return uriAbsoluta.toString();
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+
     public static String transform(String content, String baseUrl, String headers) {
         String[] contentLines = content.split("\n");
         for (String line : contentLines) {
@@ -82,13 +97,13 @@ public class InetTools {
                 if (line.startsWith("http")) {
                     content = content.replace(line, "http://127.0.0.1:8080/m3u8/" + encode(line) + headers);
                 } else {
-                    content = content.replace(line, "http://127.0.0.1:8080/m3u8/" + encode(baseUrl + line) + headers);
+                    content = content.replace(line, "http://127.0.0.1:8080/m3u8/" + encode(eliminarPathRelativos(baseUrl + line)) + headers);
                 }
             } else if (line.matches(".+\\.\\w{2,4}$")) { // Regular expression for extension
                 if (line.startsWith("http")) {
                     content = content.replace(line, "http://127.0.0.1:8080/file/" + encode(line) + headers);
                 } else {
-                    content = content.replace(line, "http://127.0.0.1:8080/file/" + encode(baseUrl + line) + headers);
+                    content = content.replace(line, "http://127.0.0.1:8080/file/" + encode(eliminarPathRelativos(baseUrl + line)) + headers);
                 }
             }
         }
@@ -111,7 +126,6 @@ public class InetTools {
         if(path.length > 3 && path[3].contains(".key")){
             url = lastM3U8BaseServer + path[3];
             Pair<String, Response> p = getResponse(url, headers, setCookie);
-            assert p != null;
             rdata = p.first;
             response = p.second;
         }else{
@@ -122,7 +136,6 @@ public class InetTools {
             }
             url = dec(path[2]);
             Pair<String, Response> p = getResponse(url, headers, setCookie);
-            assert p != null;
             rdata = p.first;
             response = p.second;
             rdata = transform(rdata, lastM3U8BaseServer, lastM3U8BaseHeaders);
