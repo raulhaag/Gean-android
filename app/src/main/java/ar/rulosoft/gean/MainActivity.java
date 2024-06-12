@@ -258,7 +258,7 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
             throw new RuntimeException(e);
         }
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        String page = "";
+        String page = "_na";
         if(isAndroidTv()){
             page = "_2";
         }
@@ -267,7 +267,7 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
         }
         //page = "_2";
         webView.loadUrl("http://127.0.0.1:8080/main" + page + ".html");
-        //webView.loadUrl("http://192.168.0.210:5500/main" + page + ".html");
+        //webView.loadUrl("http://192.168.0.210:8080/main" + page + ".html");
     }
 
 
