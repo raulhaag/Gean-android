@@ -327,13 +327,13 @@ public class PlayActivity extends AppCompatActivity
             ExoPlayer.Builder playerBuilder =
                     new ExoPlayer.Builder(/* context= */ this);
             //setRenderersFactory(playerBuilder, intent.getBooleanExtra(IntentUtil.PREFER_EXTENSION_DECODERS_EXTRA, false));
+            Map<String, String> headersMap = new HashMap<>();
+            headersMap.put("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36");
             if (data.length == 2) {
-                Map<String, String> headersMap = new HashMap<>();
                 headersMap.put("Referer", data[1]);
-                HttpDataSource.Factory dataSource = new DefaultHttpDataSource.Factory().setDefaultRequestProperties(headersMap);
-                playerBuilder.setMediaSourceFactory(new DefaultMediaSourceFactory(dataSource));
             }
-
+            HttpDataSource.Factory dataSource = new DefaultHttpDataSource.Factory().setDefaultRequestProperties(headersMap);
+            playerBuilder.setMediaSourceFactory(new DefaultMediaSourceFactory(dataSource));
             player = playerBuilder.build();
             player.setTrackSelectionParameters(trackSelectionParameters);
             player.addListener(new PlayerEventListener());
