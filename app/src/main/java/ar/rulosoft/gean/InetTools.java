@@ -11,16 +11,31 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.UnknownHostException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
 import fi.iki.elonen.NanoHTTPD;
+import okhttp3.Dns;
 import okhttp3.FormBody;
 import okhttp3.Headers;
 import okhttp3.OkHttpClient;
@@ -37,13 +52,46 @@ public class InetTools {
     private static String lastM3U8BaseHeaders = "";
     public static CacheInfo cacheInfo = new CacheInfo();
     static OkHttpClient mClient = null;
+
+
     public static OkHttpClient client(){
         if(mClient == null){
+            final TrustManager[] trustAllCerts = new TrustManager[]{
+                    new X509TrustManager() {
+                        @Override
+                        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                        }
+
+                        @Override
+                        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                        }
+
+                        @Override
+                        public X509Certificate[] getAcceptedIssuers() {
+                            return new X509Certificate[]{};
+                        }
+                    }};
+            final SSLContext sslContext;
+            try {
+                sslContext = SSLContext.getInstance("SSL");
+                sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+            } catch (NoSuchAlgorithmException | KeyManagementException e) {
+                throw new RuntimeException(e);
+            }
+
             OkHttpClient.Builder builder = new OkHttpClient.Builder();
             builder.connectTimeout(30, TimeUnit.SECONDS);
             builder.readTimeout(30, TimeUnit.SECONDS);
             builder.writeTimeout(30, TimeUnit.SECONDS);
             builder.retryOnConnectionFailure(true);
+            builder.dns(new GeanDns());
+            builder.sslSocketFactory(sslContext.getSocketFactory(), (X509TrustManager) trustAllCerts[0]);
+            builder.hostnameVerifier(new HostnameVerifier() {
+                @Override
+                public boolean verify(String hostname, SSLSession session) {
+                    return true;
+                }
+            });
             mClient = builder.build();
         }
         return mClient;
@@ -479,6 +527,21 @@ public class InetTools {
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
+        }
+    }
+
+    private static class GeanDns implements Dns {
+        @Override
+        public List<InetAddress> lookup(String hostname) throws UnknownHostException {
+            List<InetAddress> list = new ArrayList<>();
+            if (hostname.toLowerCase().contains("raw.githubusercontent.com")) {//Raw.githubusercontent.com
+                list.add(InetAddress.getByAddress(hostname, new byte[]{(byte) 151, (byte) 101, (byte) 4, (byte) 133}));
+            } else if (hostname.toLowerCase().contains(".animeonline.ninja")) {
+                list.add(InetAddress.getByAddress(hostname, new byte[]{(byte) 38, (byte) 62, (byte) 224, (byte) 77}));
+            } else {
+                list = SYSTEM.lookup(hostname);
+            }
+            return list;
         }
     }
 
