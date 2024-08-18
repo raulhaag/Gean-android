@@ -27,6 +27,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
+import android.webkit.ConsoleMessage;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -299,6 +300,11 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
         private int mOriginalSystemUiVisibility;
 
         MyChrome() {
+        }
+        @Override
+        public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
+            android.util.Log.d("WebView", consoleMessage.message());
+            return true;
         }
 
         public Bitmap getDefaultVideoPoster() {

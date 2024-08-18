@@ -11,22 +11,9 @@
       "type": "UNIVERSAL",
       "filters": [],
       "attributes": [],
-      "versionCode": 256,
+      "versionCode": 281,
       "versionName": "1.0",
       "outputFile": "app-universal-release.apk"
-    },
-    {
-      "type": "ONE_OF_MANY",
-      "filters": [
-        {
-          "filterType": "ABI",
-          "value": "x86_64"
-        }
-      ],
-      "attributes": [],
-      "versionCode": 256,
-      "versionName": "1.0",
-      "outputFile": "app-x86_64-release.apk"
     },
     {
       "type": "ONE_OF_MANY",
@@ -37,7 +24,7 @@
         }
       ],
       "attributes": [],
-      "versionCode": 256,
+      "versionCode": 281,
       "versionName": "1.0",
       "outputFile": "app-armeabi-v7a-release.apk"
     },
@@ -46,13 +33,13 @@
       "filters": [
         {
           "filterType": "ABI",
-          "value": "x86"
+          "value": "x86_64"
         }
       ],
       "attributes": [],
-      "versionCode": 256,
+      "versionCode": 281,
       "versionName": "1.0",
-      "outputFile": "app-x86-release.apk"
+      "outputFile": "app-x86_64-release.apk"
     },
     {
       "type": "ONE_OF_MANY",
@@ -63,9 +50,22 @@
         }
       ],
       "attributes": [],
-      "versionCode": 256,
+      "versionCode": 281,
       "versionName": "1.0",
       "outputFile": "app-arm64-v8a-release.apk"
+    },
+    {
+      "type": "ONE_OF_MANY",
+      "filters": [
+        {
+          "filterType": "ABI",
+          "value": "x86"
+        }
+      ],
+      "attributes": [],
+      "versionCode": 281,
+      "versionName": "1.0",
+      "outputFile": "app-x86-release.apk"
     }
   ],
   "elementType": "File"

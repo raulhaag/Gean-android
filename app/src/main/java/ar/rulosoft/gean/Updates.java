@@ -35,6 +35,7 @@ public class Updates {
         try {
             if (new File(path, "version").exists()) {
                 version = InetTools.get("https://raw.githubusercontent.com/raulhaag/gean/master/version", new HashMap<>(), new ArrayList<>());
+                //version = "0.0.1000.255";
                 String[] r_version = version.split("\\.");
                 String[] l_version = new BufferedReader(new FileReader(new File(path, "version"))).readLine().split("\\.");
                 int ri_version = Integer.parseInt(r_version[0]) * 100000000 + Integer.parseInt(r_version[1]) * 100000 + Integer.parseInt(r_version[2]);
@@ -49,6 +50,7 @@ public class Updates {
                             up.delete();
                         }
                         handler.post(() -> Toast.makeText(context, "Descargando actualización de apk, acepta los pasos para instalar la nueva versión", Toast.LENGTH_LONG).show());
+
                         InetTools.download("https://github.com/raulhaag/Gean-android/raw/master/app/release/app-universal-release.apk", up);
                         Uri upUri = FileProvider.getUriForFile(context, context.getApplicationContext().getPackageName() + ".provider", up);
                         Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -77,6 +79,8 @@ public class Updates {
             }
             handler.post(() -> Toast.makeText(context, "Descargando actualización web", Toast.LENGTH_LONG).show());
             InetTools.download("https://github.com/raulhaag/gean/archive/refs/heads/master.zip", up);
+            //InetTools.download("http://192.168.0.210:5500/output.zip", up);
+
             unzipUpdate(up.getAbsolutePath(), path.getAbsolutePath());
         } catch (Exception e) {
             handler.post(() -> Toast.makeText(context, "Error al buscar actualizaciones", Toast.LENGTH_LONG).show());

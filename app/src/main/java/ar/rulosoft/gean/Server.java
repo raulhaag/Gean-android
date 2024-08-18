@@ -40,7 +40,8 @@ public class Server extends NanoHTTPD {
     }
 
     private Server() {
-        super(8080);
+        super("127.0.0.1", 8080);
+        // to test remote super(8080);
     }
 
     static InetAddress getFirstNonLoopbackAddress(boolean preferIpv4, boolean preferIPv6) throws SocketException {
