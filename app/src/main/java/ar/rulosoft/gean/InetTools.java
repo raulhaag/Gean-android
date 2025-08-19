@@ -84,7 +84,7 @@ public class InetTools {
             builder.readTimeout(30, TimeUnit.SECONDS);
             builder.writeTimeout(30, TimeUnit.SECONDS);
             builder.retryOnConnectionFailure(true);
-            builder.dns(new GeanDns());
+            //builder.dns(new GeanDns());
             builder.sslSocketFactory(sslContext.getSocketFactory(), (X509TrustManager) trustAllCerts[0]);
             builder.hostnameVerifier(new HostnameVerifier() {
                 @Override
