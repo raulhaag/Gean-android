@@ -91,6 +91,14 @@ public class Updates {
         File destDir = new File(destDirectory);
         if (!destDir.exists()) {
             destDir.mkdir();
+        } else {
+            // Delete contents of destination directory before extracting
+            File[] files = destDir.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    deleteRecursive(file);
+                }
+            }
         }
         byte[] bytesIn = new byte[4096];
         ZipInputStream zipIn = new ZipInputStream(new FileInputStream(zipFilePath));
@@ -116,5 +124,15 @@ public class Updates {
             entry = zipIn.getNextEntry();
         }
         zipIn.close();
+    }
+
+    private static void deleteRecursive(File fileOrDirectory) {
+        if (fileOrDirectory.isDirectory()) {
+            File[] files = fileOrDirectory.listFiles();
+            if (files != null) {
+                for (File child : files) deleteRecursive(child);
+            }
+        }
+        fileOrDirectory.delete();
     }
 }
