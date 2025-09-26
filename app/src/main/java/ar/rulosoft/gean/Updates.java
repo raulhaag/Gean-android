@@ -88,12 +88,13 @@ public class Updates {
     }
 
     public static void unzipUpdate(String zipFilePath, String destDirectory) throws IOException {
-        File destDir = new File(destDirectory);
+        File destDir = new File(destDirectory );
+        File rmdir = new File(destDirectory + File.separator + "www");
         if (!destDir.exists()) {
             destDir.mkdir();
         } else {
             // Delete contents of destination directory before extracting
-            File[] files = destDir.listFiles();
+            File[] files = rmdir.listFiles();
             if (files != null) {
                 for (File file : files) {
                     deleteRecursive(file);
@@ -117,7 +118,7 @@ public class Updates {
                     File dir = new File(filePath);
                     dir.mkdirs();
                 } catch (Exception e) {
-                    //ignore
+                    e.printStackTrace();
                 }
             }
             zipIn.closeEntry();
