@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -30,11 +32,34 @@ public class Updates {
     static File path;
     static String version;
 
+    private static String getCurrentVersion(){
+        String r_version = null;
+        try {
+            final String data = InetTools.get("https://github.com/raulhaag/gean/blob/master/version", new HashMap<>(), new ArrayList<>());
+            final String regex = "\\\"rawLines\\\":\\[\\\"(.+?)\\\"\\]";
+            final Pattern pattern = Pattern.compile(regex, Pattern.MULTILINE);
+            final Matcher matcher = pattern.matcher(data);
+            if(matcher.find()){
+                r_version = matcher.group(1);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if(r_version == null){
+            try {
+                r_version = InetTools.get("https://raw.githubusercontent.com/raulhaag/gean/master/version", new HashMap<>(), new ArrayList<>());
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        return r_version;
+    }
+
     public static void checkUpdates(Context context) throws IOException {
         Handler handler = new Handler(context.getMainLooper());
         try {
             if (new File(path, "version").exists()) {
-                version = InetTools.get("https://raw.githubusercontent.com/raulhaag/gean/master/version", new HashMap<>(), new ArrayList<>());
+                version = getCurrentVersion();
                 //version = "0.0.1000.255";
                 String[] r_version = version.split("\\.");
                 String[] l_version = new BufferedReader(new FileReader(new File(path, "version"))).readLine().split("\\.");
