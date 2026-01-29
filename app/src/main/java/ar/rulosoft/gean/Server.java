@@ -132,10 +132,11 @@ public class Server extends NanoHTTPD {
 
         String wpath = "./www";
         File rfile = new File(Updates.path, wpath + path);
-
+        Response.Status resStatus = Response.Status.OK;
         if (response.equals("")) {
             if (!rfile.exists()) {
                 response = "404 (Not Found)\n";
+                resStatus = Response.Status.NOT_FOUND;
             } else {
                 if(rfile.getAbsolutePath().endsWith("sources.js")){
                     rfile = new File(Updates.path + "/temp/sources.js");
@@ -155,7 +156,7 @@ public class Server extends NanoHTTPD {
                 }
             }
         }
-        NanoHTTPD.Response nr = newFixedLengthResponse(Response.Status.OK, "application/json", response);
+        NanoHTTPD.Response nr = newFixedLengthResponse(resStatus, "application/json", response);
         for(String h: setCookie){
             nr.addHeader("gean_Set-Cookie", h);
         }
