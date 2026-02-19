@@ -102,7 +102,7 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
         webView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
         webView.getSettings().setSaveFormData(true);
         Log.e("USER AGENT", webView.getSettings().getUserAgentString());
-        webView.getSettings().setUserAgentString("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36");
+        webView.getSettings().setUserAgentString(InetTools.USER_AGENT);
         webView.addJavascriptInterface(this, "android");
         new AsyncStart().execute();
         setContentView(binding.getRoot());
@@ -151,6 +151,8 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
             switch (nkey){
                 case 66:
                 case 23:
+                case 96: // BUTTON_A
+                case 108: // BUTTON_START
                     nkey = 13;//enter
                     key = "Enter";
                     break;
@@ -176,6 +178,7 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
                     key = "Space";
                     break;
                 case 67:
+                case 97: // BUTTON_B
                     key = "Backspace";
                     nkey = 8;
                     break;

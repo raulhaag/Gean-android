@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import okhttp3.Headers;
@@ -16,7 +17,7 @@ public class PrFileInputStream extends InputStream {
     Response response;
     Request request;
     Headers rHeader;
-    public PrFileInputStream(String link, HashMap<String,String> headers) throws IOException {
+    public PrFileInputStream(String link, Map<String,String> headers) throws IOException {
         Headers.Builder headersOk = new Headers.Builder();
         for(String k: headers.keySet()){
             headersOk.add(k, (String) Objects.requireNonNull(headers.get(k)));

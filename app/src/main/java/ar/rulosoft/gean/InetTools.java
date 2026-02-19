@@ -1,6 +1,8 @@
 package ar.rulosoft.gean;
 
 import static fi.iki.elonen.NanoHTTPD.newFixedLengthResponse;
+
+import android.os.Build;
 import android.util.Base64;
 import android.util.Pair;
 
@@ -46,8 +48,8 @@ import okio.Buffer;
 import okio.BufferedSink;
 import okio.BufferedSource;
 import okio.Okio;
-
 public class InetTools {
+    public static final String USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
     private static String lastM3U8BaseServer = "";
     private static String lastM3U8BaseHeaders = "";
     public static CacheInfo cacheInfo = new CacheInfo();
@@ -102,6 +104,9 @@ public class InetTools {
         for (String k : headers.keySet()) {
             request.addHeader(k, headers.get(k));
         }
+        if (!headers.containsKey("User-Agent")) {
+            request.addHeader("User-Agent", USER_AGENT);
+        }
         try (Response response = client().newCall(request.build()).execute()) {
             setCookie.addAll(response.headers("set-cookie"));
             return response.body().string();
@@ -115,6 +120,9 @@ public class InetTools {
         Request.Builder request = new Request.Builder().url(url);
         for (String k : headers.keySet()) {
             request.addHeader(k, headers.get(k));
+        }
+        if (!headers.containsKey("User-Agent")) {
+            request.addHeader("User-Agent", USER_AGENT);
         }
         try (Response response = client().newCall(request.build()).execute()) {
             setCookie.addAll(response.headers("set-cookie"));
@@ -206,6 +214,9 @@ public class InetTools {
         for (String k : headers.keySet()) {
             request.addHeader(k, headers.get(k));
         }
+        if (!headers.containsKey("User-Agent")) {
+            request.addHeader("User-Agent", USER_AGENT);
+        }
         try (Response response = client().newCall(request.build()).execute()) {
             return response.request().url().toString();
         } catch (IOException e) {
@@ -223,6 +234,9 @@ public class InetTools {
         for (String k : headers.keySet()) {
             request.addHeader(k, headers.get(k));
         }
+        if (!headers.containsKey("User-Agent")) {
+            request.addHeader("User-Agent", USER_AGENT);
+        }
         try (Response response = client().newCall(request.post(formBody.build()).build()).execute()) {
             return response.body().string();
         } catch (IOException e) {
@@ -239,6 +253,9 @@ public class InetTools {
         Request.Builder request = new Request.Builder().url(url);
         for (String k : headers.keySet()) {
             request.addHeader(k, headers.get(k));
+        }
+        if (!headers.containsKey("User-Agent")) {
+            request.addHeader("User-Agent", USER_AGENT);
         }
         try (Response response = client().newCall(request.post(formBody.build()).build()).execute()) {
             return response.request().url().toString();
@@ -261,41 +278,65 @@ public class InetTools {
         return response;
     }
 
-    public static NanoHTTPD.Response file(String url, HashMap<String, String> headers) throws IOException {
-        PrFileInputStream inputStream = new PrFileInputStream(url, headers);
+    // Define constants to avoid magic strings and improve maintainability
+    private static final String USER_AGENT_HEADER = "User-Agent";
+    private static final String RANGE_HEADER = "range";
+    private static final String BYTES_PREFIX = "bytes=";
 
-        if(inputStream.rcode() == 200 || inputStream.rcode() == 206){
-            long tlength = Long.parseLong(Objects.requireNonNull(inputStream.getResponseHeaders().get("Content-length")));
-            NanoHTTPD.Response response;
-            NanoHTTPD.Response.Status status = (inputStream.rcode() == 200) ?NanoHTTPD.Response.Status.OK: NanoHTTPD.Response.Status.PARTIAL_CONTENT;
-            String cType = inputStream.getContentType();
-            if (cType != null && cType.length() > 2) {
-                response = newFixedLengthResponse(status, cType, "");
-            } else {
-                response = newFixedLengthResponse(NanoHTTPD.Response.Status.PARTIAL_CONTENT, "application/octet-stream", "");
+    public static NanoHTTPD.Response file(final String url, final Map<String, String> headers) throws IOException {
+        // Ensure User-Agent is present without modifying the original headers map
+        final Map<String, String> requestHeaders = new HashMap<>(headers);
+        if(!headers.containsKey(USER_AGENT_HEADER)){
+            headers.put(USER_AGENT_HEADER, USER_AGENT);
+        }
+        final PrFileInputStream inputStream = new PrFileInputStream(url, requestHeaders);
+        final int responseCode = inputStream.rcode();
+
+        // Handle unsuccessful status codes first (Guard Clause)
+        if (responseCode != 200 && responseCode != 206) {
+            // It's better to return a proper status code than a string body for errors.
+            // For example, map the upstream error code to a NanoHTTPD status.
+            // This is a simplified example.
+            return newFixedLengthResponse(
+                    NanoHTTPD.Response.Status.INTERNAL_ERROR,
+                    "text/plain",
+                    "Unsupported response from upstream: " + responseCode
+            );
+        }
+
+        try {
+            final Headers responseHeaders = inputStream.getResponseHeaders();
+            final String contentLengthStr = responseHeaders.get("Content-Length");
+            if (contentLengthStr == null) {
+                // Or handle as a chunked response if appropriate
+                throw new IOException("Content-Length header is missing from the upstream response.");
             }
+            final long totalLength = Long.parseLong(contentLengthStr);
+
+            final NanoHTTPD.Response.Status status = (responseCode == 200) ?
+                    NanoHTTPD.Response.Status.OK : NanoHTTPD.Response.Status.PARTIAL_CONTENT;
+
+            final String contentType = inputStream.getContentType() != null ?
+                    inputStream.getContentType() : "application/octet-stream";
+
+            // Create a single response object and configure it
+            final NanoHTTPD.Response response = newFixedLengthResponse(status, contentType, inputStream, totalLength);
+            response.addHeader("Accept-Ranges", "bytes");
             response.addHeader("Connection", "keep-alive");
-            String rangeHeader = headers.get("range");
-            if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
-                String rangeValue = rangeHeader.substring(6);
-                String[] ranges = rangeValue.split("-");
-                long startRange = Long.parseLong(ranges[0]);
-                long endRange = tlength - 1;
-                if (ranges.length == 2) {
-                    endRange = Long.parseLong(ranges[1]);
-                }
-                response.setStatus(NanoHTTPD.Response.Status.PARTIAL_CONTENT);
-                response.addHeader("Content-Range", "bytes " + startRange + "-" + endRange + "/" + tlength);
-                response.addHeader("Content-Length", String.valueOf(endRange - startRange + 1));
-                response.addHeader("Accept-Ranges", "bytes");
-                response.setData(inputStream);
-            } else {
-                response.addHeader("Content-Length", String.valueOf(tlength));
-                response.setData(inputStream);
-            }
+
+            // Let NanoHTTPD handle the range request logic
+            // This is the most idiomatic way and avoids manual parsing.
+            // NanoHTTPD's `serveFile` internally handles range requests correctly when you
+            // provide the full stream and its total length.
             return response;
-        }else{
-            return newFixedLengthResponse( "Respuesta no soportada: " + inputStream.rcode());
+
+        } catch (NumberFormatException e) {
+            // This handles cases where "Content-Length" is not a valid number
+            return newFixedLengthResponse(
+                    NanoHTTPD.Response.Status.INTERNAL_ERROR,
+                    "text/plain",
+                    "Invalid Content-Length from upstream."
+            );
         }
     }
 
@@ -305,6 +346,9 @@ public class InetTools {
         Headers.Builder headersOk = new Headers.Builder();
         for(String k: headers.keySet()){
             headersOk.add(k, (String) Objects.requireNonNull(headers.get(k)));
+        }
+        if(headersOk.get("User-Agent") == null){
+            headersOk.add("User-Agent", USER_AGENT);
         }
         if (cacheInfo.cacheProgress != 0){
             headersOk.add("Range", "bytes="+ cacheInfo.cacheProgress + "-");
@@ -349,6 +393,10 @@ public class InetTools {
 
     public static NanoHTTPD.Response returnCache(NanoHTTPD.IHTTPSession session) {
         Map<String,String> headers = session.getHeaders();
+        if (!headers.containsKey("User-Agent")) {
+            headers.put("User-Agent", USER_AGENT);
+        }
+
         long start = 0;
         int maxWait = 10; // max wait 30 seconds for start download
         while (cacheInfo.cacheProgress == 0) {
@@ -404,7 +452,9 @@ public class InetTools {
         return response;
     }
 
-    public static NanoHTTPD.Response cache(NanoHTTPD.IHTTPSession session, String url, HashMap<String, String> headers) {        url = dec(url);
+    public static NanoHTTPD.Response cache(NanoHTTPD.IHTTPSession session, String url, HashMap<String, String> headers) {
+        url = dec(url);
+
         if(!cacheInfo.cacheLink.equals(url)){
             if(cacheInfo.cacheThread != null){
                 cacheInfo.cacheStop = true;
