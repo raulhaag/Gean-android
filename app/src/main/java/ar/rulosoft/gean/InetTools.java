@@ -49,7 +49,7 @@ import okio.BufferedSink;
 import okio.BufferedSource;
 import okio.Okio;
 public class InetTools {
-    public static final String USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
+    public static final String USER_AGENT = "Mozilla/5.0 (X11; Linux) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
     private static String lastM3U8BaseServer = "";
     private static String lastM3U8BaseHeaders = "";
     public static CacheInfo cacheInfo = new CacheInfo();
@@ -148,22 +148,44 @@ public class InetTools {
 
     public static String transform(String content, String baseUrl, String headers) {
         String[] contentLines = content.split("\n");
+        ArrayList<String> newLines = new ArrayList<>();
         for (String line : contentLines) {
-            if (line.contains(".m3u8")) {
-                if (line.startsWith("http")) {
-                    content = content.replace(line, "http://127.0.0.1:8080/m3u8/" + encode(line) + headers);
-                } else {
-                    content = content.replace(line, "http://127.0.0.1:8080/m3u8/" + encode(eliminarPathRelativos(baseUrl + line)) + headers);
+            line = line.strip();
+            if(line.isEmpty()) continue;
+            if(line.startsWith("#")){
+                if(line.contains("URI=")){
+                    final Pattern pattern = Pattern.compile("URI=\"(.*?)\"", Pattern.MULTILINE);
+                    final Matcher matcher = pattern.matcher(line);
+                    if(matcher.find()){
+                        String url = matcher.group(1);
+                        String ptype = "file";
+                        if(url.contains(".m3u8")){
+                            ptype = "m3u8";
+                        }
+                        String full = baseUrl + url;
+                        if (url.startsWith("http")){
+                            full = url;
+                        }
+                        String encoded = "http://127.0.0.1:8080/"+ ptype + "/" + encode(full) + headers;
+                        line = line.replaceAll("URI=\"(.*?)\"", "URI=\"" + encoded + "\"");
+                    }
                 }
-            } else if (line.matches(".+\\.\\w{2,4}$")) { // Regular expression for extension
-                if (line.startsWith("http")) {
-                    content = content.replace(line, "http://127.0.0.1:8080/file/" + encode(line) + headers);
-                } else {
-                    content = content.replace(line, "http://127.0.0.1:8080/file/" + encode(eliminarPathRelativos(baseUrl + line)) + headers);
-                }
+                newLines.add(line);
+                continue;
             }
+            String full = baseUrl + line;
+            if (line.startsWith("http")){
+                full = line;
+            }
+            String ptype = "file";
+            if((!newLines.isEmpty() && newLines.get(newLines.size() - 1).startsWith("#EXT-X-STREAM-INF"))
+            || line.split("\\?")[0].contains(".m3u8")) {
+                ptype = "m3u8";
+            }
+            newLines.add("http://127.0.0.1:8080/"+ ptype + "/" + encode(full) + headers);
+
         }
-        return content;
+        return String.join("\n", newLines);
     }
 
     public static String getParentPath(String url) {
