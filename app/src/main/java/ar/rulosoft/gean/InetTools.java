@@ -9,6 +9,8 @@ import android.util.Pair;
 import com.grack.nanojson.JsonObject;
 import com.grack.nanojson.JsonParser;
 import com.grack.nanojson.JsonParserException;
+import com.grack.nanojson.JsonWriter;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,8 +42,10 @@ import fi.iki.elonen.NanoHTTPD;
 import okhttp3.Dns;
 import okhttp3.FormBody;
 import okhttp3.Headers;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okio.Buffer;
@@ -50,6 +54,7 @@ import okio.BufferedSource;
 import okio.Okio;
 public class InetTools {
     public static final String USER_AGENT = "Mozilla/5.0 (X11; Linux) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
+    public static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     private static String lastM3U8BaseServer = "";
     private static String lastM3U8BaseHeaders = "";
     public static CacheInfo cacheInfo = new CacheInfo();
@@ -248,10 +253,8 @@ public class InetTools {
     }
 
     public static String post(String url, HashMap<String,String> headers, HashMap<String, String> data){
-        FormBody.Builder formBody = new FormBody.Builder();
-        for(String k: data.keySet()){
-            formBody.add(k, data.get(k));
-        }
+
+
         Request.Builder request = new Request.Builder().url(url);
         for (String k : headers.keySet()) {
             request.addHeader(k, headers.get(k));
@@ -259,10 +262,23 @@ public class InetTools {
         if (!headers.containsKey("User-Agent")) {
             request.addHeader("User-Agent", USER_AGENT);
         }
-        try (Response response = client().newCall(request.post(formBody.build()).build()).execute()) {
-            return response.body().string();
-        } catch (IOException e) {
-            e.printStackTrace();
+        if(data.containsKey("RAW_GEAN")){
+            RequestBody body = RequestBody.create(Objects.requireNonNull(data.get("RAW_GEAN")), JSON);
+            try (Response response = client().newCall(request.post(body).build()).execute()) {
+                return response.body().string();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }else {
+            FormBody.Builder formBody = new FormBody.Builder();
+            for (String k : data.keySet()) {
+                formBody.add(k, data.get(k));
+            }
+            try (Response response = client().newCall(request.post(formBody.build()).build()).execute()) {
+                return response.body().string();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         return "";
     }
@@ -292,7 +308,7 @@ public class InetTools {
         try {
             JsonObject obj = JsonParser.object().from(jsonstr);
             for (String key:obj.keySet()){
-                response.put(key, obj.get(key).toString());
+                response.put(key, JsonWriter.string(obj.get(key)));
             }
         } catch (JsonParserException e) {
             e.printStackTrace();
