@@ -4,6 +4,7 @@ import static fi.iki.elonen.NanoHTTPD.newFixedLengthResponse;
 
 import android.os.Build;
 import android.util.Base64;
+import android.util.Log;
 import android.util.Pair;
 
 import com.grack.nanojson.JsonObject;
@@ -38,6 +39,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
+import ar.rulosoft.gean.dataClasses.UAList;
 import fi.iki.elonen.NanoHTTPD;
 import okhttp3.Dns;
 import okhttp3.FormBody;
@@ -53,14 +55,17 @@ import okio.BufferedSink;
 import okio.BufferedSource;
 import okio.Okio;
 public class InetTools {
-    public static final String USER_AGENT = "Mozilla/5.0 (X11; Linux) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
+    public static final String USER_AGENT = UAList.getUserAgent();
     public static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     private static String lastM3U8BaseServer = "";
     private static String lastM3U8BaseHeaders = "";
     public static CacheInfo cacheInfo = new CacheInfo();
     static OkHttpClient mClient = null;
 
-
+    public static void init(){
+        Log.d("Gean", "init");
+        Log.d("Gean", USER_AGENT);
+    }
     public static OkHttpClient client(){
         if(mClient == null){
             final TrustManager[] trustAllCerts = new TrustManager[]{
@@ -308,7 +313,13 @@ public class InetTools {
         try {
             JsonObject obj = JsonParser.object().from(jsonstr);
             for (String key:obj.keySet()){
-                response.put(key, JsonWriter.string(obj.get(key)));
+                Object val = obj.get(key);
+                if (val != null) {
+                    response.put(key, val.toString());
+                }
+            }
+            if(obj.has("RAW_GEAN")){
+                response.put("RAW_GEAN", JsonWriter.string(obj.get("RAW_GEAN")));
             }
         } catch (JsonParserException e) {
             e.printStackTrace();
