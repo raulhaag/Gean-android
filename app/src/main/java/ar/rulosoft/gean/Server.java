@@ -82,9 +82,9 @@ public class Server extends NanoHTTPD {
             if (fpath.length > 3) {
                 headers = InetTools.jsonToHM(InetTools.dec(fpath[3]));
             }
-            HashMap<String, String> data = new HashMap<>();
+            String data = "";
             if (fpath.length > 4) {
-                data = InetTools.jsonToHM(InetTools.dec(fpath[4]));
+                data = InetTools.dec(fpath[4]);
             }
 
             if ("get".equals(fpath[1])) {

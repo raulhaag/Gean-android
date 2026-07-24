@@ -20,6 +20,7 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
@@ -257,7 +258,7 @@ public class InetTools {
         return "";
     }
 
-    public static String post(String url, HashMap<String,String> headers, HashMap<String, String> data){
+    public static String post(String url, HashMap<String,String> headers, String data){
 
 
         Request.Builder request = new Request.Builder().url(url);
@@ -267,8 +268,9 @@ public class InetTools {
         if (!headers.containsKey("User-Agent")) {
             request.addHeader("User-Agent", USER_AGENT);
         }
+        /*
         if(data.containsKey("RAW_GEAN")){
-            RequestBody body = RequestBody.create(Objects.requireNonNull(data.get("RAW_GEAN")), JSON);
+            RequestBody body = RequestBody.create(data, "text");
             try (Response response = client().newCall(request.post(body).build()).execute()) {
                 return response.body().string();
             } catch (IOException e) {
@@ -284,23 +286,35 @@ public class InetTools {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }*/
+        RequestBody body = RequestBody.create(data.getBytes(StandardCharsets.UTF_8), null);
+        try (Response response = client().newCall(request.post(body).build()).execute()) {
+            return response.body().string();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         return "";
     }
 
-    public static String rpost(String url, HashMap<String,String> headers, HashMap<String, String> data){
-        FormBody.Builder formBody = new FormBody.Builder();
+    public static String rpost(String url, HashMap<String,String> headers, String data){
+        /*FormBody.Builder formBody = new FormBody.Builder();
         for(String k: data.keySet()){
             formBody.add(k, data.get(k));
-        }
+        }*/
         Request.Builder request = new Request.Builder().url(url);
         for (String k : headers.keySet()) {
             request.addHeader(k, headers.get(k));
         }
         if (!headers.containsKey("User-Agent")) {
             request.addHeader("User-Agent", USER_AGENT);
-        }
+        }/*
         try (Response response = client().newCall(request.post(formBody.build()).build()).execute()) {
+            return response.request().url().toString();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }/*/
+        RequestBody body = RequestBody.create(data.getBytes(StandardCharsets.UTF_8), null);
+        try (Response response = client().newCall(request.post(body).build()).execute()) {
             return response.request().url().toString();
         } catch (IOException e) {
             e.printStackTrace();

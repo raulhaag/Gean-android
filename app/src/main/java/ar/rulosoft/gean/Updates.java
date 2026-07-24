@@ -104,7 +104,9 @@ public class Updates {
             }
             handler.post(() -> Toast.makeText(context, "Descargando actualización web", Toast.LENGTH_LONG).show());
             InetTools.download("https://github.com/raulhaag/gean/archive/refs/heads/master.zip", up);
+            //InetTools.download("https://github.com/raulhaag/gean/archive/refs/heads/dev.zip", up);
             //InetTools.download("http://192.168.0.210:5500/output.zip", up);
+
 
             unzipUpdate(up.getAbsolutePath(), path.getAbsolutePath());
         } catch (Exception e) {
@@ -130,7 +132,7 @@ public class Updates {
         ZipInputStream zipIn = new ZipInputStream(new FileInputStream(zipFilePath));
         ZipEntry entry = zipIn.getNextEntry();
         while (entry != null) {
-            String filePath = destDirectory + File.separator + entry.getName().replace("gean-master/", "");
+            String filePath = destDirectory + File.separator + entry.getName().replace("gean-master/", "").replace("gean-dev/", "");
             if (!entry.isDirectory()) {
                 BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(filePath));
                 int read = 0;
