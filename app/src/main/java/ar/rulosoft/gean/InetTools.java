@@ -112,11 +112,7 @@ public class InetTools {
             builder.readTimeout(30, TimeUnit.SECONDS);
             builder.writeTimeout(30, TimeUnit.SECONDS);
             builder.retryOnConnectionFailure(true);
-            //builder.dns(new GeanDns());
-            if(cloudflareDns != null){
-                builder.dns(cloudflareDns); // <--- Asignamos el DNS de Cloudflare
-                        //.cache(new Cache(new File(cacheDir, "http_cache"), 10 * 1024 * 1024))
-            }
+            builder.dns(new GeanFallbackDns(cloudflareDns));
             builder.sslSocketFactory(sslContext.getSocketFactory(), (X509TrustManager) trustAllCerts[0]);
             builder.hostnameVerifier(new HostnameVerifier() {
                 @Override
@@ -662,20 +658,37 @@ public class InetTools {
         }
     }
 
-    private static class GeanDns implements Dns {
+    public static class GeanFallbackDns implements Dns {
+        private final Dns primaryDns;
+
+        public GeanFallbackDns(Dns primaryDns) {
+            this.primaryDns = primaryDns;
+        }
+
         @Override
         public List<InetAddress> lookup(String hostname) throws UnknownHostException {
-            List<InetAddress> list = new ArrayList<>();
-            if (hostname.toLowerCase().contains("raw.githubusercontent.com")) {//Raw.githubusercontent.com
+            String lower = hostname.toLowerCase();
+            if (lower.contains("raw.githubusercontent.com")) {
+                List<InetAddress> list = new ArrayList<>();
                 list.add(InetAddress.getByAddress(hostname, new byte[]{(byte) 151, (byte) 101, (byte) 4, (byte) 133}));
-            } /*else if (hostname.toLowerCase().contains(".animeonline.ninja")) {
-                list.add(InetAddress.getByAddress(hostname, new byte[]{(byte) 38, (byte) 62, (byte) 224, (byte) 77}));
-            }*/else if (hostname.toLowerCase().contains("lamovie.org")) {
+                return list;
+            } else if (lower.contains("lamovie.org")) {
+                List<InetAddress> list = new ArrayList<>();
                 list.add(InetAddress.getByAddress(hostname, new byte[]{(byte) 172, (byte) 64, (byte) 80, (byte) 1}));
-            } else {
-                list = SYSTEM.lookup(hostname);
+                return list;
             }
-            return list;
+
+            if (primaryDns != null) {
+                try {
+                    List<InetAddress> addresses = primaryDns.lookup(hostname);
+                    if (addresses != null && !addresses.isEmpty()) {
+                        return addresses;
+                    }
+                } catch (Exception e) {
+                    Log.w("InetTools", "Primary DoH lookup failed for " + hostname + ", falling back to System DNS: " + e.getMessage());
+                }
+            }
+            return Dns.SYSTEM.lookup(hostname);
         }
     }
 

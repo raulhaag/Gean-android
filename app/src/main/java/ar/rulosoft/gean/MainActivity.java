@@ -29,6 +29,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.webkit.ConsoleMessage;
 import android.webkit.JavascriptInterface;
+import android.webkit.MimeTypeMap;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -315,46 +316,85 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
         public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
             String url = request.getUrl().toString();
 
-            // Interceptamos peticiones HTTP/HTTPS de tipo GET
-            if (request.getMethod().equalsIgnoreCase("GET") &&
+            // Do not intercept local server calls (NanoHTTPD)
+            if (url.startsWith("http://127.0.0.1") || url.startsWith("http://localhost")) {
+                return super.shouldInterceptRequest(view, request);
+            }
+
+            String method = request.getMethod();
+
+            // Intercept HTTP and HTTPS GET, HEAD, or OPTIONS requests
+            if ((method.equalsIgnoreCase("GET") || method.equalsIgnoreCase("HEAD") || method.equalsIgnoreCase("OPTIONS")) &&
                     (url.startsWith("http://") || url.startsWith("https://"))) {
                 try {
                     Request.Builder reqBuilder = new Request.Builder()
-                            .url(url);
+                            .url(url)
+                            .method(method, null);
 
-                    // Añadir cabeceras originales del WebView (User-Agent, Accept, etc.)
+                    // Add original WebView request headers except Accept-Encoding
+                    // so OkHttp can handle transparent decompression (gzip/deflate/br).
                     if (request.getRequestHeaders() != null) {
                         for (Map.Entry<String, String> entry : request.getRequestHeaders().entrySet()) {
-                            reqBuilder.header(entry.getKey(), entry.getValue());
+                            if (!entry.getKey().equalsIgnoreCase("Accept-Encoding")) {
+                                reqBuilder.header(entry.getKey(), entry.getValue());
+                            }
                         }
                     }
 
                     Response response = okHttpClient.newCall(reqBuilder.build()).execute();
 
-                    // Obtener el tipo MIME de la respuesta
-                    String mimeType = "text/html";
+                    // Determine MIME type
+                    String mimeType = null;
                     if (response.body() != null && response.body().contentType() != null) {
                         mimeType = response.body().contentType().type() + "/" + response.body().contentType().subtype();
                     }
+                    if (mimeType == null || mimeType.trim().isEmpty() || mimeType.equals("application/octet-stream")) {
+                        String extension = MimeTypeMap.getFileExtensionFromUrl(url);
+                        if (extension != null && !extension.isEmpty()) {
+                            String extMime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.toLowerCase());
+                            if (extMime != null) {
+                                mimeType = extMime;
+                            }
+                        }
+                    }
+                    if (mimeType == null || mimeType.trim().isEmpty()) {
+                        mimeType = "text/html";
+                    }
 
-                    String encoding = response.header("content-encoding", "utf-8");
+                    // Determine character encoding
+                    String encoding = null;
+                    if (response.body() != null && response.body().contentType() != null) {
+                        java.nio.charset.Charset charset = response.body().contentType().charset();
+                        if (charset != null) {
+                            encoding = charset.name();
+                        }
+                    }
 
-                    // Convertir las cabeceras de OkHttp al formato requerido por WebResourceResponse
-                    Map<String, String> headers = new HashMap<>();
+                    // Ensure reasonPhrase is not null or empty (required by WebResourceResponse in API 21+)
+                    String reasonPhrase = response.message();
+                    if (reasonPhrase == null || reasonPhrase.trim().isEmpty()) {
+                        reasonPhrase = "OK";
+                    }
+
+                    // Copy response headers, excluding headers that interfere with WebResourceResponse
+                    Map<String, String> responseHeaders = new HashMap<>();
                     for (String name : response.headers().names()) {
-                        headers.put(name, response.header(name));
+                        if (!name.equalsIgnoreCase("content-encoding") &&
+                            !name.equalsIgnoreCase("content-length")) {
+                            responseHeaders.put(name, response.header(name));
+                        }
                     }
 
                     return new WebResourceResponse(
                             mimeType,
                             encoding,
                             response.code(),
-                            response.message(),
-                            headers,
+                            reasonPhrase,
+                            responseHeaders,
                             response.body() != null ? response.body().byteStream() : null
                     );
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    Log.e("WebViewClient", "Error intercepting request: " + url, e);
                 }
             }
             return super.shouldInterceptRequest(view, request);
