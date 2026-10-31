@@ -30,6 +30,8 @@ import android.view.WindowManager;
 import android.webkit.ConsoleMessage;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -44,9 +46,14 @@ import androidx.navigation.ui.AppBarConfiguration;
 
 import java.io.IOException;
 import java.net.SocketException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import ar.rulosoft.gean.databinding.ActivityMainBinding;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity implements KeyEvent.Callback {
     private AppBarConfiguration appBarConfiguration;
@@ -91,12 +98,12 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         webView = binding.webview;
         loadScreen = binding.loadScreen;
-        webView.setWebViewClient(new WebViewClient(){
+        webView.setWebViewClient(new CloudflareWebViewClient(InetTools.client()){
             public void onPageFinished(WebView view, String url) {
                 loadScreen.setVisibility(View.GONE);
             }
         });
-        webView.setWebChromeClient(new MyChrome());
+       // webView.setWebChromeClient(new MyChrome());
         webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
@@ -292,6 +299,65 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
         protected void onPostExecute(Void unused) {
             super.onPostExecute(unused);
             start();
+        }
+    }
+
+    public class CloudflareWebViewClient extends WebViewClient {
+
+        private final OkHttpClient okHttpClient;
+
+        public CloudflareWebViewClient(OkHttpClient okHttpClient) {
+            this.okHttpClient = okHttpClient;
+        }
+
+        @Nullable
+        @Override
+        public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+            String url = request.getUrl().toString();
+
+            // Interceptamos peticiones HTTP/HTTPS de tipo GET
+            if (request.getMethod().equalsIgnoreCase("GET") &&
+                    (url.startsWith("http://") || url.startsWith("https://"))) {
+                try {
+                    Request.Builder reqBuilder = new Request.Builder()
+                            .url(url);
+
+                    // Añadir cabeceras originales del WebView (User-Agent, Accept, etc.)
+                    if (request.getRequestHeaders() != null) {
+                        for (Map.Entry<String, String> entry : request.getRequestHeaders().entrySet()) {
+                            reqBuilder.header(entry.getKey(), entry.getValue());
+                        }
+                    }
+
+                    Response response = okHttpClient.newCall(reqBuilder.build()).execute();
+
+                    // Obtener el tipo MIME de la respuesta
+                    String mimeType = "text/html";
+                    if (response.body() != null && response.body().contentType() != null) {
+                        mimeType = response.body().contentType().type() + "/" + response.body().contentType().subtype();
+                    }
+
+                    String encoding = response.header("content-encoding", "utf-8");
+
+                    // Convertir las cabeceras de OkHttp al formato requerido por WebResourceResponse
+                    Map<String, String> headers = new HashMap<>();
+                    for (String name : response.headers().names()) {
+                        headers.put(name, response.header(name));
+                    }
+
+                    return new WebResourceResponse(
+                            mimeType,
+                            encoding,
+                            response.code(),
+                            response.message(),
+                            headers,
+                            response.body() != null ? response.body().byteStream() : null
+                    );
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            return super.shouldInterceptRequest(view, request);
         }
     }
 

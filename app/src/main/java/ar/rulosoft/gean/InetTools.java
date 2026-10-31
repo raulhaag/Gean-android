@@ -42,15 +42,18 @@ import javax.net.ssl.X509TrustManager;
 
 import ar.rulosoft.gean.dataClasses.UAList;
 import fi.iki.elonen.NanoHTTPD;
+import okhttp3.Cache;
 import okhttp3.Dns;
 import okhttp3.FormBody;
 import okhttp3.Headers;
+import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import okhttp3.dnsoverhttps.DnsOverHttps;
 import okio.Buffer;
 import okio.BufferedSink;
 import okio.BufferedSource;
@@ -91,13 +94,29 @@ public class InetTools {
             } catch (NoSuchAlgorithmException | KeyManagementException e) {
                 throw new RuntimeException(e);
             }
-
+            DnsOverHttps cloudflareDns = null;
+            try{
+                cloudflareDns = new DnsOverHttps.Builder()
+                        .client(new OkHttpClient.Builder().build())
+                        .url(HttpUrl.get("https://cloudflare-dns.com/dns-query"))
+                        .bootstrapDnsHosts(
+                                InetAddress.getByName("1.1.1.1"),
+                                InetAddress.getByName("1.0.0.1")
+                        )
+                        .build();
+            }catch (Exception e){
+                //ignore
+            }
             OkHttpClient.Builder builder = new OkHttpClient.Builder();
             builder.connectTimeout(30, TimeUnit.SECONDS);
             builder.readTimeout(30, TimeUnit.SECONDS);
             builder.writeTimeout(30, TimeUnit.SECONDS);
             builder.retryOnConnectionFailure(true);
             //builder.dns(new GeanDns());
+            if(cloudflareDns != null){
+                builder.dns(cloudflareDns); // <--- Asignamos el DNS de Cloudflare
+                        //.cache(new Cache(new File(cacheDir, "http_cache"), 10 * 1024 * 1024))
+            }
             builder.sslSocketFactory(sslContext.getSocketFactory(), (X509TrustManager) trustAllCerts[0]);
             builder.hostnameVerifier(new HostnameVerifier() {
                 @Override
@@ -649,8 +668,10 @@ public class InetTools {
             List<InetAddress> list = new ArrayList<>();
             if (hostname.toLowerCase().contains("raw.githubusercontent.com")) {//Raw.githubusercontent.com
                 list.add(InetAddress.getByAddress(hostname, new byte[]{(byte) 151, (byte) 101, (byte) 4, (byte) 133}));
-            } else if (hostname.toLowerCase().contains(".animeonline.ninja")) {
+            } /*else if (hostname.toLowerCase().contains(".animeonline.ninja")) {
                 list.add(InetAddress.getByAddress(hostname, new byte[]{(byte) 38, (byte) 62, (byte) 224, (byte) 77}));
+            }*/else if (hostname.toLowerCase().contains("lamovie.org")) {
+                list.add(InetAddress.getByAddress(hostname, new byte[]{(byte) 172, (byte) 64, (byte) 80, (byte) 1}));
             } else {
                 list = SYSTEM.lookup(hostname);
             }

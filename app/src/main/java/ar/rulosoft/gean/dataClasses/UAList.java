@@ -104,6 +104,8 @@ public class UAList {
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 OPR/118.0.0.0"
     };
     public static String getUserAgent(){
-        return UAList.USER_AGENT_LIST[(int)(Math.random() * UAList.USER_AGENT_LIST.length)].replaceAll("\"", "");
+        //return UAList.USER_AGENT_LIST[(int)(Math.random() * UAList.USER_AGENT_LIST.length)].replaceAll("\"", "");
+        //
+        return "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:159.0) Gecko/20100101 Firefox/159.0";
     }
 }
