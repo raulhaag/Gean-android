@@ -104,6 +104,8 @@ public class MainActivity extends AppCompatActivity implements KeyEvent.Callback
                 loadScreen.setVisibility(View.GONE);
             }
         });
+        //webView.setWebViewClient(new CloudflareWebViewClient(InetTools.client()));
+        webView.setWebChromeClient(new MyChrome());
        // webView.setWebChromeClient(new MyChrome());
         webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
         webView.getSettings().setJavaScriptEnabled(true);
